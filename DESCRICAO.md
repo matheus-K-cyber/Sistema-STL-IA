@@ -160,3 +160,74 @@ Em tela: "Personagem teve sua vida zerada, agora ele está morto e seus dados se
 9-Quando o "descarte" é usado em um stack com mais de um item, descarte o mais recém adicionado(avisando o usuario de que foi o mais recente), e separe um container para os pesos, pois o peso do item descartado deve ser descontado tanto do peso total do stack como(por consequência) do peso total atual.
 
 Adicionais: caso a ação de pegar venha com uma quantidade maior(seja extrapolando o stack existente ou os slots) aceite apenas a quantidade que pode entrar sem que passe do peso máximo suportavel, emitindo um aviso de quantos puderam ser pegos e quantos foram largados(do numero de itens que o usuario tentou pegar, ou seja, ele só pega a quantidade que não passe do limite, e caso só um já ultrapasse, não pega nenhum e emite o aviso), ou seja, pegue apenas oque da antes de ou lotar os slots ou atingir o peso maximo(ou se aproximar) ou mesmo ambos os casos ocorrerem, e caso sejam itens stackaveis, pegue até que o stack seja preenchido(e caso não haja mais slot para o resto entrar, descarta esses que não entraram e avisa qiantos ficaram de fora), e tanto faz que slot usar(afinal, oque for catalogado em uma aba também conta na geral); no campo do item(exposto somente na "analise") deve mostrar seu nome, tipagem, se stacka ou não e, em caso de armadura ou arma, que tipo de arma ou peça é; na criação do personagem deve ser pedido nome(maximo de 10 caracteres), dinheiro inicial(mesmo que zero, mas não pode ser negativo e nem extrapolar o limite), a ordem de itens iniciais não influencia em nada no geral, e pode-se começar com algo equipado(sendo necessario passar nome, tipagem e, se armadura qual ou quais peças e se for arma qual arma); só pode usar algo com inventario aberto(seja no proprio ou em alguma aba), pegar item ativa o "abrir" do inventario(caso já não esteja aberto), fechar apenas impede interações com os itens armazenados, para parar o programa o usuario tambem pode usar a ação "dormir".
+
+## Ajustes finais aceitos da sugestão de IA
+
+> Origem: as regras desta seção foram acrescentadas com **sugestão de IA permitida e aceita pelo autor**. Em caso de conflito com o texto anterior, valem estas regras.
+
+### [IA-1] Slots de itens comuns e equipados
+
+A aba geral tem `N` slots para itens comuns e mais 4 slots exclusivos para itens equipados, totalizando `N+4`. Os 4 slots de equipados não entram na divisão entre as abas, não podem ser doados e não podem ser usados por itens comuns. Ao desequipar, o item precisa de vaga na aba da sua categoria; se não houver vaga nem slot sobressalente, a ação é bloqueada.
+
+### [IA-2] Peso em stack com pesos diferentes
+
+Cada unidade ou lote adicionado guarda o próprio peso. O peso do stack é a soma dos pesos das unidades que estão nele. Ao consumir ou descartar, retira-se primeiro a unidade mais recente do stack escolhido e desconta-se o peso dessa unidade do stack e do peso total.
+
+### [IA-3] Pegar quantidade parcial
+
+Se o usuário pedir uma quantidade que não cabe inteira, entra a maior quantidade que couber sem ultrapassar o peso máximo nem os slots. A interface informa quantos entraram e quantos ficaram de fora. Se nem uma unidade couber, a ação é bloqueada e o item não entra.
+
+### [IA-4] Ordem dos stacks nas ações
+
+- Pegar: completa primeiro o stack com menor quantidade; se houver empate, usa o mais novo.
+- Consumir: usa o stack com menor quantidade; se houver empate, usa o mais novo.
+- Descartar: usa o stack mais recente; se precisar de mais unidades, continua no próximo stack mais recente.
+- Em todos os casos, dentro do stack sai primeiro a unidade mais recente.
+
+### [IA-5] Identidade do item
+
+Dois itens são iguais quando têm o mesmo nome, a mesma categoria, a mesma raridade, o mesmo efeito (quando consumível) e o mesmo subtipo (quando arma ou armadura). O peso não faz parte da identidade. Exemplos: "Poção" de vida e "Poção" de mana não stackam; uma arma e uma peça de armadura de mesmo nome são distintas.
+
+### [IA-6] Troca de equipamento
+
+Equipar uma arma sempre substitui a arma atualmente equipada, mesmo que o subtipo seja diferente. Equipar uma armadura substitui apenas a peça do mesmo slot (capacete, peitoral ou calça); peças de slots diferentes coexistem. A peça ou arma antiga ocupa o slot que o novo item deixou na aba da categoria.
+
+### [IA-7] Limites do peso máximo do personagem
+
+O peso máximo do personagem deve ficar entre 0,01 kg e 1000,00 kg, com no máximo duas casas decimais.
+
+### [IA-8] Dinheiro acima de 9999
+
+Ao ganhar dinheiro, soma-se até o limite de 9999 e o excedente é descartado. Exemplo: 9900 + 200 resulta em 9999; 101 moedas são descartadas.
+
+### [IA-9] Limiares de peso
+
+Os limiares 25%, 50%, 75% e 100% são atingidos quando o peso total é maior ou igual ao valor (`>=`). A mensagem deve usar "25% ou mais", "50% ou mais", etc. O limiar de 100% continua bloqueando o ato de pegar.
+
+### [IA-10] Ordem da aba geral ao completar stack
+
+Quando uma unidade entra em um stack que já existe, o stack permanece na posição antiga da aba geral. Apenas um stack novo é colocado no início (mais recente).
+
+### [IA-11] Resultado da pesquisa
+
+A pesquisa mostra uma linha por identidade de item (nome + raridade + efeito/subtipo, conforme [IA-5]) com a quantidade total encontrada na aba. Quando o nome exato é pesquisado, também lista cada stack/slot com sua quantidade. Itens equipados aparecem apenas na aba geral.
+
+### [IA-12] Campos da análise
+
+A análise mostra nome, categoria, raridade, se é consumível, efeito (se houver), se stacka, limite máximo do stack, peso unitário e, para arma ou armadura, o subtipo.
+
+### [IA-13] Entrada por menu
+
+Categoria, raridade e subtipo de arma/armadura são escolhidos por menu numerado na interface, para evitar erro de acento, plural ou nome inválido.
+
+### [IA-14] Nome do item
+
+Espaços são permitidos no nome do item e não contam no limite de 99 caracteres.
+
+### [IA-15] Quantidade ao pegar
+
+A quantidade informada em "pegar" deve ser um número inteiro maior que zero. Zero ou negativo é rejeitado com aviso e nada é adicionado.
+
+### [IA-16] Dormir e encerrar
+
+"Dormir" pode ser usado a qualquer momento. "Encerrar" só pode ser usado depois que o personagem morre e seus dados são apagados.
