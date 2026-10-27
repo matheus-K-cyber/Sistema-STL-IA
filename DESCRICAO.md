@@ -231,3 +231,34 @@ A quantidade informada em "pegar" deve ser um número inteiro maior que zero. Ze
 ### [IA-16] Dormir e encerrar
 
 "Dormir" pode ser usado a qualquer momento. "Encerrar" só pode ser usado depois que o personagem morre e seus dados são apagados.
+
+### [IA-17] Definição de N e slots exclusivos (adição de IA)
+
+- `N` é o "tamanho total do inventário" passado na criação e corresponde **apenas** aos slots para itens comuns. 
+- A aba geral possui `N` slots para itens comuns + **4 slots exclusivos para itens equipados**, totalizando `N+4`. 
+- Os **4 slots exclusivos** não entram na divisão entre as 6 abas categorizadas, não podem ser doados, não podem ser usados por itens comuns e não contam nos limites de mínimo/máximo citados para "inventário" (regra 57). 
+- Itens equipados ocupam **obrigatoriamente** esses 4 slots exclusivos; eles ficam vazios até que algo seja equipado.
+
+### [IA-18] Divisão, resto e sobressalentes (adição de IA)
+
+- Os `N` slots comuns são divididos **igualmente** entre as 6 abas categorizadas. 
+- Caso a divisão não seja exata, o **resto não é somado à aba geral**. Ele é guardado como **sobressalentes disponíveis** para as abas categorizadas. 
+- Quando uma aba categorizada ficar cheia e houver sobressalentes disponíveis, ela pode receber slots adicionais (um ou mais, conforme necessário) vindos desse resto guardado. Esses sobressalentes ficam com a aba até o fim do programa. 
+- Se não houver sobressalentes (divisão igualitária), não há doação em caso de lotação e, se não couber, o item não entra com aviso de inventário cheio. 
+- A soma das abas categorizadas pode crescer com sobressalentes, mas **não pode ultrapassar** o número de slots da aba geral referentes aos comuns (`N`); os 4 slots exclusivos nunca são usados para isso.
+
+### [IA-19] Comportamento de Dormir/Encerrar (adição de IA)
+
+- **Dormir** pode ser usado a qualquer momento. Ao usar "Dormir", o programa deve executar **exatamente o mesmo processo de limpeza total** que "Encerrar" faria após a morte (apagar personagem, apagar inventário e todos os dados relacionados), imprimir a mensagem de encerramento e **encerrar o programa**.
+- **Encerrar** só pode ser usado depois que o personagem morre, seus dados já foram apagados e a pergunta pós-morte já foi tratada. É o comando que indica o encerramento do programa nesse fluxo pós-morte.
+
+### [IA-20] Alocação e stack com pesos diferentes (adição de IA - prático)
+
+- Ao adicionar uma unidade com peso diferente a um stack já existente (mesma identidade conforme [IA-5]), ela entra no mesmo stack. O peso do stack passa a ser a **soma** dos pesos de todas as unidades nele ([IA-2]). Para simplificar a implementação, trate o stack como uma coleção de unidades em ordem (mais recente no topo/última adicionada) para saber qual unidade sai primeiro em consumir/descartar.
+- Para ações ([IA-4]): **pegar** prioriza completar stack com menor quantidade (empate -> mais novo); **consumir** usa stack com menor quantidade (empate -> mais novo); **descartar** usa stack mais recente primeiro. **Dentro do stack, sempre sai a unidade mais recente**.
+
+### [IA-21] Categoria obrigatória e consistência (adição de IA)
+
+- Categoria, raridade e subtipo (arma/armadura) **devem** ser escolhidos por **menu numérico** na interface ([IA-13]). 
+- Se a categoria informada não existir entre as 6 categorias válidas, o sistema emite aviso, **cancela a ação de pegar/adicionar** e pede para escolher uma categoria válida. O item não entra no inventário nem em nenhuma aba até que uma categoria válida seja fornecida.
+- Apenas **comidas e poções** são consumíveis. Armas e peças de armadura **não stackam** independente da raridade. Itens equipados ficam nos **4 slots exclusivos** da aba geral e **não** são contabilizados nas abas categorizadas, mas **sempre** contam na aba geral e no peso.
