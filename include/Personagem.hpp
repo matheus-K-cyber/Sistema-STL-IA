@@ -5,7 +5,8 @@
 
 class Personagem {
 public:
-    Personagem(const std::string& nome, int pesoMaximo, int dinheiro);
+    Personagem(const std::string& nomePersonagem, int pesoMaximoPersonagem,
+               int dinheiroInicial);
 
     const std::string& getNome() const;
     int getPesoMaximo() const;

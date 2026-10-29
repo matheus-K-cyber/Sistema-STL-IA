@@ -14,6 +14,8 @@ std::string nomeCategoria(Categoria categoria) {
         return "Unicos";
     case CATEGORIA_RECURSOS_NATURAIS:
         return "Recursos Naturais";
+    default:
+        break;
     }
     return "Desconhecida";
 }
@@ -26,6 +28,8 @@ std::string nomeRaridade(Raridade raridade) {
         return "Raro";
     case RARIDADE_LENDARIO:
         return "Lendario";
+    default:
+        break;
     }
     return "Desconhecida";
 }
@@ -40,6 +44,8 @@ std::string nomeEfeito(Efeito efeito) {
         return "Mana";
     case EFEITO_VIDA_E_MANA:
         return "Vida e Mana";
+    default:
+        break;
     }
     return "Desconhecido";
 }
@@ -62,6 +68,8 @@ std::string nomeSubtipo(Subtipo subtipo) {
         return "Peitoral";
     case SUBTIPO_CALCA:
         return "Calca";
+    default:
+        break;
     }
     return "Desconhecido";
 }
@@ -76,6 +84,8 @@ std::string nomeSlotEquipamento(SlotEquipamento slot) {
         return "Peitoral";
     case SLOT_CALCA:
         return "Calca";
+    default:
+        break;
     }
     return "Desconhecido";
 }

@@ -3,11 +3,14 @@
 
 #include <string>
 
+#include "Tipos.hpp"
+
 class Calculadora {
 public:
     static int quilosParaCentesimos(double quilos);
     static double centesimosParaQuilos(int centesimos);
     static int capacidadeGeral(int slotsComuns);
+    static int limiteStack(Raridade raridade, bool equipavel);
 
     static bool ultrapassaPesoMaximo(int pesoAtual, int pesoNovo, int pesoMaximo);
     static int limiarPeso(int pesoAtual, int pesoMaximo);

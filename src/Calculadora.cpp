@@ -14,6 +14,23 @@ int Calculadora::capacidadeGeral(int slotsComuns) {
     return slotsComuns + 4;
 }
 
+int Calculadora::limiteStack(Raridade raridade, bool equipavel) {
+    if (equipavel) {
+        return 1;
+    }
+    switch (raridade) {
+    case RARIDADE_SIMPLES:
+        return 30;
+    case RARIDADE_RARO:
+        return 20;
+    case RARIDADE_LENDARIO:
+        return 1;
+    default:
+        break;
+    }
+    return 1;
+}
+
 bool Calculadora::ultrapassaPesoMaximo(int pesoAtual, int pesoNovo, int pesoMaximo) {
     return pesoAtual + pesoNovo > pesoMaximo;
 }
