@@ -224,13 +224,15 @@ bool Interface::lerSubtipo(Categoria categoria, Subtipo& subtipo) {
     return true;
 }
 
-bool Interface::criarItemTeste() {
+bool Interface::pegarItem(Inventario& inventario, int pesoMaximo,
+                          bool& inventarioAberto) {
     std::string nome;
     int peso;
     Categoria categoria;
     Raridade raridade;
     Efeito efeito = EFEITO_NENHUM;
     Subtipo subtipo = SUBTIPO_NENHUM;
+    int quantidade;
 
     if (!lerNomeItem(nome)) {
         return false;
@@ -252,11 +254,19 @@ bool Interface::criarItemTeste() {
     if (!lerSubtipo(categoria, subtipo)) {
         return false;
     }
+    if (!lerInteiro("Quantidade (maior que zero): ", 1, 1000000, quantidade)) {
+        return false;
+    }
 
     Item item(nome, peso, categoria, raridade, efeito, subtipo);
-    ItemStack pilha;
-    pilha.adicionar(item);
-    mostrarAnalise(pilha);
+    ResultadoAdicao resultado = inventario.adicionar(item, quantidade, pesoMaximo);
+
+    mostrarResultadoAdicao(resultado, quantidade);
+    if (!inventarioAberto) {
+        inventarioAberto = true;
+        std::cout << "O inventario foi aberto automaticamente.\n";
+    }
+    mostrarInventarioGeral(inventario);
     return true;
 }
 
@@ -277,7 +287,65 @@ void Interface::mostrarAnalise(const ItemStack& pilha) const {
               << Calculadora::centesimosParaQuilos(pilha.pesoTotal()) << " kg\n\n";
 }
 
-void Interface::mostrarStatus(const Personagem& personagem, int capacidade) const {
+void Interface::mostrarInventarioGeral(const Inventario& inventario) const {
+    const std::list<ItemStack>& geral = inventario.listarGeral();
+    std::cout << "\n=== Inventario geral (mais recente primeiro) ===\n";
+    if (geral.empty()) {
+        std::cout << "Inventario vazio.\n\n";
+        return;
+    }
+
+    int posicao = 1;
+    for (std::list<ItemStack>::const_iterator it = geral.begin();
+         it != geral.end(); ++it) {
+        std::cout << posicao << " - " << it->identidade().getNome()
+                  << " | " << it->quantidade()
+                  << (it->quantidade() == 1 ? " unidade" : " unidades")
+                  << " | Peso: " << std::fixed << std::setprecision(2)
+                  << Calculadora::centesimosParaQuilos(it->pesoTotal())
+                  << " kg\n";
+        ++posicao;
+    }
+    std::cout << "Peso total: " << std::fixed << std::setprecision(2)
+              << Calculadora::centesimosParaQuilos(inventario.pesoTotal())
+              << " kg\n\n";
+}
+
+void Interface::mostrarResultadoAdicao(const ResultadoAdicao& resultado,
+                                       int quantidade) const {
+    std::cout << "\n=== Resultado do pegar ===\n"
+              << "Quantidade pedida: " << quantidade << '\n';
+    if (resultado.adicionados == 0) {
+        std::cout << "Nenhuma unidade foi adicionada.\n";
+    } else if (resultado.recusados > 0) {
+        std::cout << "Unidades adicionadas: " << resultado.adicionados << '\n'
+                  << "Unidades que ficaram de fora: " << resultado.recusados
+                  << '\n';
+    } else {
+        std::cout << "Todas as unidades foram adicionadas.\n";
+    }
+    if (resultado.motivo == ADICAO_LIMITE_PESO) {
+        std::cout << "Motivo: o peso maximo do personagem seria ultrapassado.\n";
+    }
+    std::cout << "Peso atual: " << std::fixed << std::setprecision(2)
+              << Calculadora::centesimosParaQuilos(resultado.pesoAtual)
+              << " kg\n";
+}
+
+void Interface::alternarInventario(const Inventario& inventario,
+                                   bool& inventarioAberto) const {
+    if (inventarioAberto) {
+        inventarioAberto = false;
+        std::cout << "\nInventario fechado.\n\n";
+        return;
+    }
+    inventarioAberto = true;
+    std::cout << "\nInventario aberto.\n";
+    mostrarInventarioGeral(inventario);
+}
+
+void Interface::mostrarStatus(const Personagem& personagem, int capacidade,
+                              int pesoAtual) const {
     int capacidadeTotal = Calculadora::capacidadeGeral(capacidade);
     std::cout << "\n=== Status ===\n"
               << "Nome: " << personagem.getNome() << '\n'
@@ -286,15 +354,19 @@ void Interface::mostrarStatus(const Personagem& personagem, int capacidade) cons
               << " kg\n"
               << "Capacidade: " << capacidadeTotal << " slots ("
               << capacidade << " comuns + 4 equipados)\n"
-              << "Peso atual: 0.00 kg\n"
+              << "Peso atual: " << std::fixed << std::setprecision(2)
+              << Calculadora::centesimosParaQuilos(pesoAtual) << " kg\n"
               << "Dinheiro: " << personagem.getDinheiro() << " moedas\n\n";
 }
 
-void Interface::mostrarMenu() const {
+void Interface::mostrarMenu(bool inventarioAberto) const {
     std::cout << "=== Menu ===\n"
               << "1 - Status\n"
               << "2 - Dormir\n"
-              << "3 - Criar item de teste\n";
+              << "3 - Pegar item\n"
+              << "4 - "
+              << (inventarioAberto ? "Fechar inventario" : "Abrir inventario")
+              << '\n';
 }
 
 void Interface::executar() {
@@ -309,27 +381,32 @@ void Interface::executar() {
     }
 
     Personagem personagem(nome, pesoMaximo, dinheiro);
+    Inventario inventario;
+    bool inventarioAberto = false;
+
     std::cout << "\nPersonagem criado com sucesso!\n";
-    mostrarStatus(personagem, capacidade);
+    mostrarStatus(personagem, capacidade, inventario.pesoTotal());
 
     while (true) {
-        mostrarMenu();
+        mostrarMenu(inventarioAberto);
         int opcao;
-        if (!lerInteiro("Opcao: ", 1, 3, opcao)) {
+        if (!lerInteiro("Opcao: ", 1, 4, opcao)) {
             std::cout << "\nEntrada encerrada. Programa finalizado.\n";
             return;
         }
 
         if (opcao == 1) {
-            mostrarStatus(personagem, capacidade);
+            mostrarStatus(personagem, capacidade, inventario.pesoTotal());
         } else if (opcao == 2) {
             std::cout << "\nO personagem foi dormir. Programa encerrado.\n";
             return;
-        } else {
-            if (!criarItemTeste()) {
+        } else if (opcao == 3) {
+            if (!pegarItem(inventario, pesoMaximo, inventarioAberto)) {
                 std::cout << "\nEntrada encerrada. Programa finalizado.\n";
                 return;
             }
+        } else {
+            alternarInventario(inventario, inventarioAberto);
         }
     }
 }

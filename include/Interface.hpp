@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "Inventario.hpp"
 #include "ItemStack.hpp"
 #include "Personagem.hpp"
 
@@ -21,10 +22,17 @@ private:
     bool lerRaridade(Raridade& raridade);
     bool lerEfeito(Efeito& efeito);
     bool lerSubtipo(Categoria categoria, Subtipo& subtipo);
-    bool criarItemTeste();
+    bool pegarItem(Inventario& inventario, int pesoMaximo,
+                   bool& inventarioAberto);
     void mostrarAnalise(const ItemStack& pilha) const;
-    void mostrarStatus(const Personagem& personagem, int capacidade) const;
-    void mostrarMenu() const;
+    void mostrarInventarioGeral(const Inventario& inventario) const;
+    void mostrarResultadoAdicao(const ResultadoAdicao& resultado,
+                                int quantidade) const;
+    void alternarInventario(const Inventario& inventario,
+                            bool& inventarioAberto) const;
+    void mostrarStatus(const Personagem& personagem, int capacidade,
+                       int pesoAtual) const;
+    void mostrarMenu(bool inventarioAberto) const;
 };
 
 #endif
