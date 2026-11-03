@@ -2,6 +2,7 @@
 #define INTERFACE_HPP
 
 #include <string>
+#include <vector>
 
 #include "Inventario.hpp"
 #include "ItemStack.hpp"
@@ -35,10 +36,17 @@ private:
                                 int quantidade, Categoria categoria) const;
     void alternarInventario(const Inventario& inventario,
                             bool& inventarioAberto) const;
-    bool selecionarAba(const Inventario& inventario);
+    bool selecionarAba(const Inventario& inventario, int& abaAtual);
+    bool pesquisarItem(const Inventario& inventario, int abaAtual);
+    bool analisarItem(const Inventario& inventario, int abaAtual);
+    void mostrarResultadosPesquisa(
+        const std::vector<const ItemStack*>& resultados, int abaAtual,
+        const std::string& texto) const;
+    void mostrarSugestaoGeral(const Inventario& inventario, int abaAtual,
+                              const std::string& texto) const;
     void mostrarStatus(const Personagem& personagem, int capacidade,
                        int pesoAtual) const;
-    void mostrarMenu(bool inventarioAberto) const;
+    void mostrarMenu(bool inventarioAberto, int abaAtual) const;
 };
 
 #endif

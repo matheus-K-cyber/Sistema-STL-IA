@@ -29,6 +29,13 @@ bool converterDecimal(const std::string& texto, double& valor) {
     return !(entrada >> resto);
 }
 
+std::string nomeAbaAtual(int abaAtual) {
+    if (abaAtual == 0) {
+        return "Geral";
+    }
+    return nomeCategoria(static_cast<Categoria>(abaAtual - 1));
+}
+
 }
 
 bool Interface::lerNome(std::string& nome) {
@@ -320,14 +327,18 @@ void Interface::mostrarAnalise(const ItemStack& pilha) const {
               << "Nome: " << item.getNome() << '\n'
               << "Categoria: " << nomeCategoria(item.getCategoria()) << '\n'
               << "Raridade: " << nomeRaridade(item.getRaridade()) << '\n'
-              << "Consumivel: " << (item.isConsumivel() ? "Sim" : "Nao") << '\n'
-              << "Efeito: " << nomeEfeito(item.getEfeito()) << '\n'
-              << "Subtipo: " << nomeSubtipo(item.getSubtipo()) << '\n'
-              << "Stacka: " << (pilha.limite() > 1 ? "Sim" : "Nao") << '\n'
+              << "Consumivel: " << (item.isConsumivel() ? "Sim" : "Nao") << '\n';
+    if (item.getEfeito() != EFEITO_NENHUM) {
+        std::cout << "Efeito: " << nomeEfeito(item.getEfeito()) << '\n';
+    }
+    std::cout << "Stacka: " << (pilha.limite() > 1 ? "Sim" : "Nao") << '\n'
               << "Limite de stack: " << pilha.limite() << '\n'
               << "Peso unitario: " << std::fixed << std::setprecision(2)
-              << Calculadora::centesimosParaQuilos(item.getPeso()) << " kg\n"
-              << "Peso total do stack: " << std::fixed << std::setprecision(2)
+              << Calculadora::centesimosParaQuilos(item.getPeso()) << " kg\n";
+    if (item.isEquipavel()) {
+        std::cout << "Subtipo: " << nomeSubtipo(item.getSubtipo()) << '\n';
+    }
+    std::cout << "Peso total do stack: " << std::fixed << std::setprecision(2)
               << Calculadora::centesimosParaQuilos(pilha.pesoTotal()) << " kg\n\n";
 }
 
@@ -432,7 +443,204 @@ void Interface::alternarInventario(const Inventario& inventario,
     mostrarInventarioGeral(inventario);
 }
 
-bool Interface::selecionarAba(const Inventario& inventario) {
+void Interface::mostrarSugestaoGeral(const Inventario& inventario, int abaAtual,
+                                     const std::string& texto) const {
+    if (abaAtual == 0) {
+        return;
+    }
+    Categoria categoria = static_cast<Categoria>(abaAtual - 1);
+    std::vector<const ItemStack*> naGeral =
+        inventario.pesquisar(texto, categoria, true);
+    if (naGeral.empty()) {
+        std::cout << "Nenhum item com esse prefixo no inventario.\n";
+    } else {
+        std::cout << "Existe(m) item(ns) com esse prefixo na aba Geral. "
+                  << "Selecione a aba Geral para pesquisar la.\n";
+    }
+}
+
+void Interface::mostrarResultadosPesquisa(
+    const std::vector<const ItemStack*>& resultados, int abaAtual,
+    const std::string& texto) const {
+    struct GrupoPesquisa {
+        const ItemStack* representante;
+        int quantidadeTotal;
+    };
+
+    std::vector<GrupoPesquisa> grupos;
+    for (std::vector<const ItemStack*>::size_type i = 0; i < resultados.size();
+         ++i) {
+        const ItemStack* pilha = resultados[i];
+        bool encontrado = false;
+        for (std::vector<GrupoPesquisa>::size_type j = 0; j < grupos.size();
+             ++j) {
+            if (grupos[j].representante->identidade().mesmaIdentidade(
+                    pilha->identidade())) {
+                grupos[j].quantidadeTotal += pilha->quantidade();
+                encontrado = true;
+                break;
+            }
+        }
+        if (!encontrado) {
+            GrupoPesquisa grupo;
+            grupo.representante = pilha;
+            grupo.quantidadeTotal = pilha->quantidade();
+            grupos.push_back(grupo);
+        }
+    }
+
+    std::cout << "\n=== Pesquisa na aba " << nomeAbaAtual(abaAtual) << " ===\n"
+              << "Texto pesquisado: \"" << texto << "\"\n";
+    for (std::vector<GrupoPesquisa>::size_type i = 0; i < grupos.size(); ++i) {
+        const Item& item = grupos[i].representante->identidade();
+        std::cout << (i + 1) << " - " << item.getNome()
+                  << " | " << nomeCategoria(item.getCategoria())
+                  << " | " << nomeRaridade(item.getRaridade());
+        if (item.isConsumivel() && item.getEfeito() != EFEITO_NENHUM) {
+            std::cout << " | Efeito: " << nomeEfeito(item.getEfeito());
+        }
+        if (item.isEquipavel()) {
+            std::cout << " | Subtipo: " << nomeSubtipo(item.getSubtipo());
+        }
+        std::cout << " | Total: " << grupos[i].quantidadeTotal
+                  << (grupos[i].quantidadeTotal == 1 ? " unidade" : " unidades")
+                  << '\n';
+    }
+
+    std::string textoNormalizado = normalizarTexto(texto);
+    bool mostrouCabecalho = false;
+    for (std::vector<GrupoPesquisa>::size_type i = 0; i < grupos.size(); ++i) {
+        const Item& item = grupos[i].representante->identidade();
+        if (normalizarTexto(item.getNome()) != textoNormalizado) {
+            continue;
+        }
+        if (!mostrouCabecalho) {
+            std::cout << "\nStacks do nome exato:\n";
+            mostrouCabecalho = true;
+        }
+        std::cout << "  " << item.getNome() << " ("
+                  << nomeRaridade(item.getRaridade());
+        if (item.isConsumivel() && item.getEfeito() != EFEITO_NENHUM) {
+            std::cout << ", Efeito: " << nomeEfeito(item.getEfeito());
+        }
+        if (item.isEquipavel()) {
+            std::cout << ", Subtipo: " << nomeSubtipo(item.getSubtipo());
+        }
+        std::cout << "):\n";
+
+        int numero = 1;
+        for (std::vector<const ItemStack*>::size_type j = 0;
+             j < resultados.size(); ++j) {
+            if (!resultados[j]->identidade().mesmaIdentidade(item)) {
+                continue;
+            }
+            std::cout << "    Stack " << numero << ": "
+                      << resultados[j]->quantidade()
+                      << (resultados[j]->quantidade() == 1 ? " unidade"
+                                                           : " unidades");
+            if (resultados[j]->isEquipado()) {
+                std::cout << " [equipado]";
+            }
+            std::cout << '\n';
+            ++numero;
+        }
+    }
+    std::cout << '\n';
+}
+
+bool Interface::pesquisarItem(const Inventario& inventario, int abaAtual) {
+    std::string texto;
+    std::cout << "Texto da pesquisa: ";
+    if (!std::getline(std::cin, texto)) {
+        return false;
+    }
+    if (texto.empty()) {
+        std::cout << "Digite um nome para pesquisar.\n";
+        return true;
+    }
+
+    bool naGeral = (abaAtual == 0);
+    Categoria categoria = naGeral ? CATEGORIA_MINERIOS
+                                  : static_cast<Categoria>(abaAtual - 1);
+    std::vector<const ItemStack*> resultados =
+        inventario.pesquisar(texto, categoria, naGeral);
+    if (resultados.empty()) {
+        std::cout << "\n=== Pesquisa na aba " << nomeAbaAtual(abaAtual)
+                  << " ===\n"
+                  << "Nenhum item encontrado com o prefixo \"" << texto
+                  << "\".\n";
+        mostrarSugestaoGeral(inventario, abaAtual, texto);
+        std::cout << '\n';
+        return true;
+    }
+
+    mostrarResultadosPesquisa(resultados, abaAtual, texto);
+    return true;
+}
+
+bool Interface::analisarItem(const Inventario& inventario, int abaAtual) {
+    std::string texto;
+    std::cout << "Nome do item para analisar: ";
+    if (!std::getline(std::cin, texto)) {
+        return false;
+    }
+    if (texto.empty()) {
+        std::cout << "Digite um nome para analisar.\n";
+        return true;
+    }
+
+    bool naGeral = (abaAtual == 0);
+    Categoria categoria = naGeral ? CATEGORIA_MINERIOS
+                                  : static_cast<Categoria>(abaAtual - 1);
+    std::vector<const ItemStack*> resultados =
+        inventario.pesquisar(texto, categoria, naGeral);
+    if (resultados.empty()) {
+        std::cout << "\n=== Analise na aba " << nomeAbaAtual(abaAtual)
+                  << " ===\n"
+                  << "Nenhum item encontrado com o prefixo \"" << texto
+                  << "\".\n";
+        mostrarSugestaoGeral(inventario, abaAtual, texto);
+        std::cout << '\n';
+        return true;
+    }
+
+    const ItemStack* escolhida = 0;
+    if (resultados.size() == 1) {
+        escolhida = resultados[0];
+    } else {
+        std::cout << "\nItens encontrados na aba " << nomeAbaAtual(abaAtual)
+                  << ":\n";
+        for (std::vector<const ItemStack*>::size_type i = 0;
+             i < resultados.size(); ++i) {
+            std::cout << (i + 1) << " - "
+                      << resultados[i]->identidade().getNome()
+                      << " | " << resultados[i]->quantidade()
+                      << (resultados[i]->quantidade() == 1 ? " unidade"
+                                                          : " unidades");
+            if (resultados[i]->isEquipado()) {
+                std::cout << " [equipado]";
+            }
+            std::cout << '\n';
+        }
+        int escolha;
+        if (!lerInteiro("Item para analisar: ", 1,
+                        static_cast<int>(resultados.size()), escolha)) {
+            return false;
+        }
+        escolhida = resultados[escolha - 1];
+    }
+
+    if (escolhida->isEquipado()) {
+        std::cout << "\nNao e possivel analisar um item equipado. "
+                  << "Desequipe-o primeiro.\n\n";
+        return true;
+    }
+
+    mostrarAnalise(*escolhida);
+    return true;
+}
+
+bool Interface::selecionarAba(const Inventario& inventario, int& abaAtual) {
     std::cout << "Abas:\n"
               << "1 - Geral\n"
               << "2 - Minerios\n"
@@ -447,10 +655,13 @@ bool Interface::selecionarAba(const Inventario& inventario) {
     }
 
     if (opcao == 1) {
+        abaAtual = 0;
         mostrarInventarioGeral(inventario);
     } else {
-        mostrarAba(inventario, static_cast<Categoria>(opcao - 2));
+        abaAtual = opcao - 1;
+        mostrarAba(inventario, static_cast<Categoria>(abaAtual - 1));
     }
+    std::cout << "Aba atual: " << nomeAbaAtual(abaAtual) << "\n\n";
     return true;
 }
 
@@ -469,7 +680,7 @@ void Interface::mostrarStatus(const Personagem& personagem, int capacidade,
               << "Dinheiro: " << personagem.getDinheiro() << " moedas\n\n";
 }
 
-void Interface::mostrarMenu(bool inventarioAberto) const {
+void Interface::mostrarMenu(bool inventarioAberto, int abaAtual) const {
     std::cout << "=== Menu ===\n"
               << "1 - Status\n"
               << "2 - Dormir\n"
@@ -477,7 +688,12 @@ void Interface::mostrarMenu(bool inventarioAberto) const {
               << "4 - "
               << (inventarioAberto ? "Fechar inventario" : "Abrir inventario")
               << '\n'
-              << "5 - Selecionar aba\n";
+              << "5 - Selecionar aba\n"
+              << "6 - Pesquisar\n"
+              << "7 - Analisar\n";
+    if (inventarioAberto) {
+        std::cout << "Aba atual: " << nomeAbaAtual(abaAtual) << '\n';
+    }
 }
 
 void Interface::executar() {
@@ -494,6 +710,7 @@ void Interface::executar() {
     Personagem personagem(nome, pesoMaximo, dinheiro);
     Inventario inventario(capacidade);
     bool inventarioAberto = false;
+    int abaAtual = 0;
 
     std::cout << "\nPersonagem criado com sucesso!\n";
     if (!lerItensIniciais(inventario, pesoMaximo)) {
@@ -503,9 +720,9 @@ void Interface::executar() {
     mostrarStatus(personagem, capacidade, inventario.pesoTotal());
 
     while (true) {
-        mostrarMenu(inventarioAberto);
+        mostrarMenu(inventarioAberto, abaAtual);
         int opcao;
-        if (!lerInteiro("Opcao: ", 1, 5, opcao)) {
+        if (!lerInteiro("Opcao: ", 1, 7, opcao)) {
             std::cout << "\nEntrada encerrada. Programa finalizado.\n";
             return;
         }
@@ -522,10 +739,24 @@ void Interface::executar() {
             }
         } else if (opcao == 4) {
             alternarInventario(inventario, inventarioAberto);
+        } else if (opcao == 5) {
+            if (!inventarioAberto) {
+                std::cout << "\nAbra o inventario primeiro.\n";
+            } else if (!selecionarAba(inventario, abaAtual)) {
+                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                return;
+            }
+        } else if (opcao == 6) {
+            if (!inventarioAberto) {
+                std::cout << "\nAbra o inventario primeiro.\n";
+            } else if (!pesquisarItem(inventario, abaAtual)) {
+                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                return;
+            }
         } else {
             if (!inventarioAberto) {
                 std::cout << "\nAbra o inventario primeiro.\n";
-            } else if (!selecionarAba(inventario)) {
+            } else if (!analisarItem(inventario, abaAtual)) {
                 std::cout << "\nEntrada encerrada. Programa finalizado.\n";
                 return;
             }

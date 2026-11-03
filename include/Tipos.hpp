@@ -49,4 +49,6 @@ std::string nomeEfeito(Efeito efeito);
 std::string nomeSubtipo(Subtipo subtipo);
 std::string nomeSlotEquipamento(SlotEquipamento slot);
 
+std::string normalizarTexto(const std::string& texto);
+
 #endif

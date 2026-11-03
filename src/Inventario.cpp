@@ -245,3 +245,49 @@ void Inventario::ordenarAba(Categoria categoria) {
         std::sort(it->second.begin(), it->second.end(), compararPilhas);
     }
 }
+
+std::vector<const ItemStack*> Inventario::pesquisar(
+    const std::string& prefixo, Categoria categoria, bool naGeral) const {
+    std::vector<const ItemStack*> encontrados;
+    std::string textoNormalizado = normalizarTexto(prefixo);
+    if (textoNormalizado.empty()) {
+        return encontrados;
+    }
+
+    if (naGeral) {
+        for (std::list<ItemStack>::const_iterator it = geral.begin();
+             it != geral.end(); ++it) {
+            if (it->quantidade() == 0) {
+                continue;
+            }
+            std::string nomeNormalizado =
+                normalizarTexto(it->identidade().getNome());
+            if (nomeNormalizado.compare(0, textoNormalizado.size(),
+                                        textoNormalizado) == 0) {
+                encontrados.push_back(&(*it));
+            }
+        }
+        return encontrados;
+    }
+
+    std::map<Categoria, std::vector<ItemStack*> >::const_iterator aba =
+        abas.find(categoria);
+    if (aba == abas.end()) {
+        return encontrados;
+    }
+
+    for (std::vector<ItemStack*>::const_iterator it = aba->second.begin();
+         it != aba->second.end(); ++it) {
+        const ItemStack* pilha = *it;
+        if (pilha == 0 || pilha->quantidade() == 0 || pilha->isEquipado()) {
+            continue;
+        }
+        std::string nomeNormalizado =
+            normalizarTexto(pilha->identidade().getNome());
+        if (nomeNormalizado.compare(0, textoNormalizado.size(),
+                                    textoNormalizado) == 0) {
+            encontrados.push_back(pilha);
+        }
+    }
+    return encontrados;
+}

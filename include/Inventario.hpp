@@ -3,6 +3,7 @@
 
 #include <list>
 #include <map>
+#include <string>
 #include <vector>
 
 #include "ItemStack.hpp"
@@ -43,6 +44,9 @@ public:
     const std::list<ItemStack>& listarGeral() const;
     const std::vector<ItemStack*>& listarAba(Categoria categoria) const;
     void ordenarAba(Categoria categoria);
+    std::vector<const ItemStack*> pesquisar(const std::string& prefixo,
+                                            Categoria categoria,
+                                            bool naGeral) const;
 
 private:
     ItemStack* encontrarAlvo(const Item& item);

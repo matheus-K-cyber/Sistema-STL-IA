@@ -1,0 +1,50 @@
+Aria
+50
+30
+100
+3
+Poção de Vida
+0,20
+3
+1
+1
+35
+Poção de Mana
+0,20
+3
+1
+2
+12
+Espada
+3,00
+4
+1
+1
+1
+4
+6
+poc
+5
+3
+6
+poc
+5
+4
+6
+POCAO
+6
+poção
+6
+Poção de Vida
+6
+Poção de Mana
+7
+Poção de Vida
+1
+7
+Poção de Mana
+5
+5
+7
+Espada
+2

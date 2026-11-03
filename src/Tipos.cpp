@@ -1,5 +1,75 @@
 #include "Tipos.hpp"
 
+std::string normalizarTexto(const std::string& texto) {
+    std::string resultado;
+    resultado.reserve(texto.size());
+    std::string::size_type i = 0;
+    while (i < texto.size()) {
+        unsigned char atual = static_cast<unsigned char>(texto[i]);
+        if (atual < 0x80) {
+            if (atual >= 'A' && atual <= 'Z') {
+                resultado += static_cast<char>(atual - 'A' + 'a');
+            } else {
+                resultado += static_cast<char>(atual);
+            }
+            ++i;
+            continue;
+        }
+        if (atual == 0xC3 && i + 1 < texto.size()) {
+            unsigned char proximo = static_cast<unsigned char>(texto[i + 1]);
+            char base = 0;
+            switch (proximo) {
+            case 0xA1:
+            case 0xA0:
+            case 0xA2:
+            case 0xA3:
+            case 0x81:
+            case 0x80:
+            case 0x82:
+            case 0x83:
+                base = 'a';
+                break;
+            case 0xA9:
+            case 0xAA:
+            case 0x89:
+            case 0x8A:
+                base = 'e';
+                break;
+            case 0xAD:
+            case 0x8D:
+                base = 'i';
+                break;
+            case 0xB3:
+            case 0xB4:
+            case 0xB5:
+            case 0x93:
+            case 0x94:
+            case 0x95:
+                base = 'o';
+                break;
+            case 0xBA:
+            case 0x9A:
+                base = 'u';
+                break;
+            case 0xA7:
+            case 0x87:
+                base = 'c';
+                break;
+            default:
+                break;
+            }
+            if (base != 0) {
+                resultado += base;
+                i += 2;
+                continue;
+            }
+        }
+        resultado += static_cast<char>(atual);
+        ++i;
+    }
+    return resultado;
+}
+
 std::string nomeCategoria(Categoria categoria) {
     switch (categoria) {
     case CATEGORIA_MINERIOS:
