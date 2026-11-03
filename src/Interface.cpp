@@ -326,6 +326,12 @@ void Interface::mostrarResultadoAdicao(const ResultadoAdicao& resultado,
     }
     if (resultado.motivo == ADICAO_LIMITE_PESO) {
         std::cout << "Motivo: o peso maximo do personagem seria ultrapassado.\n";
+    } else if (resultado.motivo == ADICAO_INVENTARIO_CHEIO) {
+        std::cout << "Motivo: o inventario esta cheio (sem slot livre para este item).\n"
+                  << "Os 4 slots extras sao exclusivos para itens equipados.\n";
+    } else if (resultado.motivo == ADICAO_LIMITE_PESO_E_INVENTARIO) {
+        std::cout << "Motivo: o peso maximo seria ultrapassado e o inventario"
+                  << " esta cheio.\n";
     }
     std::cout << "Peso atual: " << std::fixed << std::setprecision(2)
               << Calculadora::centesimosParaQuilos(resultado.pesoAtual)
@@ -381,7 +387,7 @@ void Interface::executar() {
     }
 
     Personagem personagem(nome, pesoMaximo, dinheiro);
-    Inventario inventario;
+    Inventario inventario(capacidade);
     bool inventarioAberto = false;
 
     std::cout << "\nPersonagem criado com sucesso!\n";
