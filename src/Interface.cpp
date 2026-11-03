@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "Acoes.hpp"
 #include "Calculadora.hpp"
 
 namespace {
@@ -702,6 +703,194 @@ bool Interface::analisarItem(const Inventario& inventario, int abaAtual) {
     return true;
 }
 
+bool Interface::escolherPilha(const Inventario& inventario, int abaAtual,
+                              const std::string& acao,
+                              const ItemStack*& escolhida) {
+    escolhida = 0;
+
+    std::string texto;
+    std::cout << "Nome do item para " << acao << ": ";
+    if (!std::getline(std::cin, texto)) {
+        return false;
+    }
+    if (texto.empty()) {
+        std::cout << "Digite um nome.\n";
+        return true;
+    }
+
+    bool naGeral = (abaAtual == 0);
+    Categoria categoria = naGeral ? CATEGORIA_MINERIOS
+                                  : static_cast<Categoria>(abaAtual - 1);
+    std::vector<const ItemStack*> resultados =
+        inventario.pesquisar(texto, categoria, naGeral);
+    if (resultados.empty()) {
+        std::cout << "\n=== " << acao << " na aba "
+                  << nomeAbaAtual(abaAtual) << " ===\n"
+                  << "Nenhum item encontrado com o prefixo \"" << texto
+                  << "\".\n";
+        mostrarSugestaoGeral(inventario, abaAtual, texto);
+        std::cout << '\n';
+        return true;
+    }
+
+    if (resultados.size() == 1) {
+        escolhida = resultados[0];
+        return true;
+    }
+
+    std::cout << "\nItens encontrados na aba " << nomeAbaAtual(abaAtual)
+              << ":\n";
+    for (std::vector<const ItemStack*>::size_type i = 0;
+         i < resultados.size(); ++i) {
+        std::cout << (i + 1) << " - "
+                  << resultados[i]->identidade().getNome()
+                  << " | " << resultados[i]->quantidade()
+                  << (resultados[i]->quantidade() == 1 ? " unidade"
+                                                      : " unidades");
+        if (resultados[i]->isEquipado()) {
+            std::cout << " [equipado]";
+        }
+        std::cout << '\n';
+    }
+
+    int escolha;
+    if (!lerInteiro("Item para " + acao + ": ", 1,
+                    static_cast<int>(resultados.size()), escolha)) {
+        return false;
+    }
+    escolhida = resultados[escolha - 1];
+    return true;
+}
+
+bool Interface::confirmar(const std::string& pergunta, bool& confirmado) {
+    std::cout << '\n' << pergunta << '\n'
+              << "1 - Sim\n"
+              << "2 - Nao\n";
+    int opcao;
+    if (!lerInteiro("Confirmacao: ", 1, 2, opcao)) {
+        return false;
+    }
+    confirmado = (opcao == 1);
+    return true;
+}
+
+bool Interface::consumirItem(Inventario& inventario, Personagem& personagem,
+                             int abaAtual) {
+    const ItemStack* pilha = 0;
+    if (!escolherPilha(inventario, abaAtual, "consumir", pilha)) {
+        return false;
+    }
+    if (pilha == 0) {
+        return true;
+    }
+
+    std::string nome = pilha->identidade().getNome();
+    ResultadoAcao resultado = Acoes::consumir(inventario, personagem, pilha);
+
+    std::cout << '\n';
+    if (!resultado.sucesso) {
+        if (resultado.motivo == FALHA_NAO_ENCONTRADO) {
+            std::cout << "O item nao esta mais no inventario.\n\n";
+        } else if (resultado.motivo == FALHA_EQUIPADO) {
+            std::cout << "Nao e possivel consumir um item equipado. "
+                      << "Desequipe-o primeiro.\n\n";
+        } else if (resultado.motivo == FALHA_NAO_CONSUMIVEL) {
+            std::cout << "Este item nao e consumivel. Somente Comidas e "
+                      << "Pocoes podem ser consumidas.\n\n";
+        } else {
+            std::cout << "Nao foi possivel consumir o item.\n\n";
+        }
+        return true;
+    }
+
+    std::cout << "Voce consumiu 1 unidade de " << nome << ".\n";
+    if (resultado.efeito == EFEITO_VIDA) {
+        std::cout << "Aviso: 20% da vida foi restaurada.\n";
+    } else if (resultado.efeito == EFEITO_MANA) {
+        std::cout << "Aviso: 20% da mana foi restaurada.\n";
+    } else if (resultado.efeito == EFEITO_VIDA_E_MANA) {
+        std::cout << "Aviso: 20% da vida e 20% da mana foram restaurados.\n";
+    }
+    std::cout << "Peso removido: " << std::fixed << std::setprecision(2)
+              << Calculadora::centesimosParaQuilos(resultado.pesoRemovido)
+              << " kg.\n\n";
+
+    mostrarAlertaPeso(personagem.atualizarPeso(inventario.pesoTotal()));
+    return true;
+}
+
+bool Interface::descartarItem(Inventario& inventario, Personagem& personagem,
+                              int abaAtual) {
+    const ItemStack* pilha = 0;
+    if (!escolherPilha(inventario, abaAtual, "descartar", pilha)) {
+        return false;
+    }
+    if (pilha == 0) {
+        return true;
+    }
+
+    std::cout << "\nTipo de descarte:\n"
+              << "1 - Uma unidade\n"
+              << "2 - Todos\n"
+              << "3 - Quantidade escolhida\n";
+    int modo;
+    if (!lerInteiro("Opcao de descarte: ", 1, 3, modo)) {
+        return false;
+    }
+
+    int quantidade = 1;
+    if (modo == 3) {
+        if (!lerInteiro("Quantidade a descartar (maior que zero): ", 1,
+                        1000000, quantidade)) {
+            return false;
+        }
+    }
+
+    bool confirmado = false;
+    if (!confirmar("Confirma o descarte?", confirmado)) {
+        return false;
+    }
+    if (!confirmado) {
+        std::cout << "\nDescarte cancelado.\n\n";
+        return true;
+    }
+
+    std::string nome = pilha->identidade().getNome();
+    ResultadoAcao resultado;
+    if (modo == 2) {
+        resultado = Acoes::descartarTudo(inventario, personagem, pilha);
+    } else {
+        resultado = Acoes::descartar(inventario, personagem, pilha, quantidade);
+    }
+
+    std::cout << '\n';
+    if (!resultado.sucesso) {
+        if (resultado.motivo == FALHA_NAO_ENCONTRADO) {
+            std::cout << "O item nao esta mais no inventario.\n\n";
+        } else if (resultado.motivo == FALHA_EQUIPADO) {
+            std::cout << "Nao e possivel descartar um item equipado. "
+                      << "Desequipe-o primeiro.\n\n";
+        } else if (resultado.motivo == FALHA_QUANTIDADE_INSUFICIENTE) {
+            std::cout << "A quantidade informada nao existe no inventario. "
+                      << "O descarte foi bloqueado.\n\n";
+        } else {
+            std::cout << "Nao foi possivel descartar o item.\n\n";
+        }
+        return true;
+    }
+
+    std::cout << "Descartadas " << resultado.quantidade
+              << (resultado.quantidade == 1 ? " unidade de "
+                                            : " unidades de ")
+              << nome << " (a unidade mais recente de cada stack).\n"
+              << "Peso removido: " << std::fixed << std::setprecision(2)
+              << Calculadora::centesimosParaQuilos(resultado.pesoRemovido)
+              << " kg.\n\n";
+
+    mostrarAlertaPeso(personagem.atualizarPeso(inventario.pesoTotal()));
+    return true;
+}
+
 bool Interface::selecionarAba(const Inventario& inventario, int& abaAtual) {
     std::cout << "Abas:\n"
               << "1 - Geral\n"
@@ -789,7 +978,9 @@ void Interface::mostrarMenu(bool inventarioAberto, int abaAtual) const {
               << "6 - Pesquisar\n"
               << "7 - Analisar\n"
               << "8 - Ganhar dinheiro\n"
-              << "9 - Gastar ou perder dinheiro\n";
+              << "9 - Gastar ou perder dinheiro\n"
+              << "10 - Consumir\n"
+              << "11 - Descartar\n";
     if (inventarioAberto) {
         std::cout << "Aba atual: " << nomeAbaAtual(abaAtual) << '\n';
     }
@@ -821,7 +1012,7 @@ void Interface::executar() {
     while (true) {
         mostrarMenu(inventarioAberto, abaAtual);
         int opcao;
-        if (!lerInteiro("Opcao: ", 1, 9, opcao)) {
+        if (!lerInteiro("Opcao: ", 1, 11, opcao)) {
             std::cout << "\nEntrada encerrada. Programa finalizado.\n";
             return;
         }
@@ -864,8 +1055,22 @@ void Interface::executar() {
                 std::cout << "\nEntrada encerrada. Programa finalizado.\n";
                 return;
             }
-        } else {
+        } else if (opcao == 9) {
             if (!gastarDinheiro(personagem)) {
+                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                return;
+            }
+        } else if (opcao == 10) {
+            if (!inventarioAberto) {
+                std::cout << "\nAbra o inventario primeiro.\n";
+            } else if (!consumirItem(inventario, personagem, abaAtual)) {
+                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                return;
+            }
+        } else {
+            if (!inventarioAberto) {
+                std::cout << "\nAbra o inventario primeiro.\n";
+            } else if (!descartarItem(inventario, personagem, abaAtual)) {
                 std::cout << "\nEntrada encerrada. Programa finalizado.\n";
                 return;
             }

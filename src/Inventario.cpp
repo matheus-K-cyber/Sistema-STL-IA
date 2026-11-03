@@ -291,3 +291,61 @@ std::vector<const ItemStack*> Inventario::pesquisar(
     }
     return encontrados;
 }
+
+std::vector<ItemStack*> Inventario::stacksDaIdentidade(const Item& item) {
+    std::vector<ItemStack*> encontrados;
+    for (std::list<ItemStack>::iterator it = geral.begin();
+         it != geral.end(); ++it) {
+        if (it->quantidade() > 0
+            && it->identidade().mesmaIdentidade(item)) {
+            encontrados.push_back(&(*it));
+        }
+    }
+    return encontrados;
+}
+
+bool Inventario::contem(const ItemStack* pilha) const {
+    if (pilha == 0) {
+        return false;
+    }
+    for (std::list<ItemStack>::const_iterator it = geral.begin();
+         it != geral.end(); ++it) {
+        if (&(*it) == pilha) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Inventario::removerUnidade(ItemStack* pilha) {
+    if (!contem(pilha)) {
+        return false;
+    }
+    return pilha->removerUltima();
+}
+
+bool Inventario::removerSeVazio(ItemStack* pilha) {
+    if (pilha == 0 || pilha->quantidade() > 0) {
+        return false;
+    }
+
+    for (std::map<Categoria, std::vector<ItemStack*> >::iterator aba =
+             abas.begin();
+         aba != abas.end(); ++aba) {
+        std::vector<ItemStack*>::iterator posicao =
+            std::find(aba->second.begin(), aba->second.end(), pilha);
+        if (posicao != aba->second.end()) {
+            aba->second.erase(posicao);
+            break;
+        }
+    }
+
+    for (std::list<ItemStack>::iterator it = geral.begin();
+         it != geral.end(); ++it) {
+        if (&(*it) == pilha) {
+            geral.erase(it);
+            return true;
+        }
+    }
+    return false;
+}

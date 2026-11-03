@@ -47,6 +47,10 @@ public:
     std::vector<const ItemStack*> pesquisar(const std::string& prefixo,
                                             Categoria categoria,
                                             bool naGeral) const;
+    std::vector<ItemStack*> stacksDaIdentidade(const Item& item);
+    bool contem(const ItemStack* pilha) const;
+    bool removerUnidade(ItemStack* pilha);
+    bool removerSeVazio(ItemStack* pilha);
 
 private:
     ItemStack* encontrarAlvo(const Item& item);

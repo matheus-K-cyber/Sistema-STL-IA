@@ -41,6 +41,14 @@ private:
     bool selecionarAba(const Inventario& inventario, int& abaAtual);
     bool pesquisarItem(const Inventario& inventario, int abaAtual);
     bool analisarItem(const Inventario& inventario, int abaAtual);
+    bool escolherPilha(const Inventario& inventario, int abaAtual,
+                       const std::string& acao,
+                       const ItemStack*& escolhida);
+    bool confirmar(const std::string& pergunta, bool& confirmado);
+    bool consumirItem(Inventario& inventario, Personagem& personagem,
+                      int abaAtual);
+    bool descartarItem(Inventario& inventario, Personagem& personagem,
+                       int abaAtual);
     void mostrarResultadosPesquisa(
         const std::vector<const ItemStack*>& resultados, int abaAtual,
         const std::string& texto) const;
