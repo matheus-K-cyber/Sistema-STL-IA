@@ -26,9 +26,11 @@ private:
     bool lerDadosItem(std::string& nome, int& peso, Categoria& categoria,
                       Raridade& raridade, Efeito& efeito, Subtipo& subtipo,
                       int& quantidade);
-    bool pegarItem(Inventario& inventario, int pesoMaximo,
+    bool pegarItem(Personagem& personagem, Inventario& inventario,
                    bool& inventarioAberto);
-    bool lerItensIniciais(Inventario& inventario, int pesoMaximo);
+    bool lerItensIniciais(Inventario& inventario, Personagem& personagem);
+    bool ganharDinheiro(Personagem& personagem);
+    bool gastarDinheiro(Personagem& personagem);
     void mostrarAnalise(const ItemStack& pilha) const;
     void mostrarInventarioGeral(const Inventario& inventario) const;
     void mostrarAba(const Inventario& inventario, Categoria categoria) const;
@@ -44,8 +46,9 @@ private:
         const std::string& texto) const;
     void mostrarSugestaoGeral(const Inventario& inventario, int abaAtual,
                               const std::string& texto) const;
-    void mostrarStatus(const Personagem& personagem, int capacidade,
-                       int pesoAtual) const;
+    void mostrarStatus(const Personagem& personagem,
+                       const Inventario& inventario) const;
+    void mostrarAlertaPeso(const AlertaPeso& alerta) const;
     void mostrarMenu(bool inventarioAberto, int abaAtual) const;
 };
 

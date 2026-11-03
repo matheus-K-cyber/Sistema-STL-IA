@@ -54,6 +54,27 @@ int Calculadora::limiarPeso(int pesoAtual, int pesoMaximo) {
     return 0;
 }
 
+int Calculadora::maiorLimiarAlcancado(int limiarAnterior, int limiarAtual) {
+    const int limiares[] = {25, 50, 75, 100};
+    int maior = limiarAnterior;
+    for (int i = 0; i < 4; ++i) {
+        if (limiares[i] > limiarAnterior && limiares[i] <= limiarAtual) {
+            maior = limiares[i];
+        }
+    }
+    return maior;
+}
+
+int Calculadora::menorLimiarUltrapassado(int limiarAtual, int limiarAnterior) {
+    const int limiares[] = {25, 50, 75, 100};
+    for (int i = 0; i < 4; ++i) {
+        if (limiares[i] > limiarAtual && limiares[i] <= limiarAnterior) {
+            return limiares[i];
+        }
+    }
+    return 0;
+}
+
 int Calculadora::somarDinheiro(int dinheiroAtual, int valorRecebido, int& dinheiroFinal) {
     const int limite = 9999;
     if (dinheiroAtual >= limite) {
@@ -67,6 +88,15 @@ int Calculadora::somarDinheiro(int dinheiroAtual, int valorRecebido, int& dinhei
     }
     dinheiroFinal = dinheiroAtual + valorRecebido;
     return 0;
+}
+
+bool Calculadora::gastarDinheiro(int dinheiroAtual, int valorGasto, int& dinheiroFinal) {
+    if (valorGasto <= 0 || valorGasto > dinheiroAtual) {
+        dinheiroFinal = dinheiroAtual;
+        return false;
+    }
+    dinheiroFinal = dinheiroAtual - valorGasto;
+    return true;
 }
 
 int Calculadora::contarCaracteresSemEspaco(const std::string& texto) {

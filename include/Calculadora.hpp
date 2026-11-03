@@ -14,7 +14,10 @@ public:
 
     static bool ultrapassaPesoMaximo(int pesoAtual, int pesoNovo, int pesoMaximo);
     static int limiarPeso(int pesoAtual, int pesoMaximo);
+    static int maiorLimiarAlcancado(int limiarAnterior, int limiarAtual);
+    static int menorLimiarUltrapassado(int limiarAtual, int limiarAnterior);
     static int somarDinheiro(int dinheiroAtual, int valorRecebido, int& dinheiroFinal);
+    static bool gastarDinheiro(int dinheiroAtual, int valorGasto, int& dinheiroFinal);
     static int contarCaracteresSemEspaco(const std::string& texto);
 
 private:

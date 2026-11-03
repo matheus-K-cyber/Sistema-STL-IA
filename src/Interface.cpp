@@ -36,6 +36,15 @@ std::string nomeAbaAtual(int abaAtual) {
     return nomeCategoria(static_cast<Categoria>(abaAtual - 1));
 }
 
+std::string descricaoLimiar(int limiar) {
+    if (limiar <= 0) {
+        return "abaixo de 25%";
+    }
+    std::stringstream texto;
+    texto << limiar << "% ou mais";
+    return texto.str();
+}
+
 }
 
 bool Interface::lerNome(std::string& nome) {
@@ -264,8 +273,15 @@ bool Interface::lerDadosItem(std::string& nome, int& peso,
     return true;
 }
 
-bool Interface::pegarItem(Inventario& inventario, int pesoMaximo,
+bool Interface::pegarItem(Personagem& personagem, Inventario& inventario,
                           bool& inventarioAberto) {
+    if (Calculadora::limiarPeso(inventario.pesoTotal(),
+                                personagem.getPesoMaximo()) >= 100) {
+        std::cout << "\nCarga em 100%: o personagem esta cansado e nao pode"
+                  << " atacar, correr nem pegar itens.\n\n";
+        return true;
+    }
+
     std::string nome;
     int peso;
     Categoria categoria;
@@ -280,9 +296,11 @@ bool Interface::pegarItem(Inventario& inventario, int pesoMaximo,
     }
 
     Item item(nome, peso, categoria, raridade, efeito, subtipo);
-    ResultadoAdicao resultado = inventario.adicionar(item, quantidade, pesoMaximo);
+    ResultadoAdicao resultado =
+        inventario.adicionar(item, quantidade, personagem.getPesoMaximo());
 
     mostrarResultadoAdicao(resultado, quantidade, categoria);
+    mostrarAlertaPeso(personagem.atualizarPeso(inventario.pesoTotal()));
     if (!inventarioAberto) {
         inventarioAberto = true;
         std::cout << "O inventario foi aberto automaticamente.\n";
@@ -291,7 +309,8 @@ bool Interface::pegarItem(Inventario& inventario, int pesoMaximo,
     return true;
 }
 
-bool Interface::lerItensIniciais(Inventario& inventario, int pesoMaximo) {
+bool Interface::lerItensIniciais(Inventario& inventario,
+                                 Personagem& personagem) {
     int total;
     if (!lerInteiro("Quantidade de itens iniciais (0 para nenhum): ", 0, 1000,
                     total)) {
@@ -315,9 +334,52 @@ bool Interface::lerItensIniciais(Inventario& inventario, int pesoMaximo) {
 
         Item item(nome, peso, categoria, raridade, efeito, subtipo);
         ResultadoAdicao resultado =
-            inventario.adicionar(item, quantidade, pesoMaximo);
+            inventario.adicionar(item, quantidade, personagem.getPesoMaximo());
         mostrarResultadoAdicao(resultado, quantidade, categoria);
+        mostrarAlertaPeso(personagem.atualizarPeso(inventario.pesoTotal()));
     }
+    return true;
+}
+
+bool Interface::ganharDinheiro(Personagem& personagem) {
+    int valor;
+    if (!lerInteiro("Moedas ganhas (maior que zero): ", 1, 1000000, valor)) {
+        return false;
+    }
+
+    int excedente = personagem.ganharDinheiro(valor);
+    std::cout << "\nO personagem ganhou " << valor << " moedas! Agora possui "
+              << personagem.getDinheiro() << " moedas.\n";
+    if (excedente > 0) {
+        std::cout << excedente
+                  << " moedas foram descartadas por exceder o limite de 9999.\n";
+    }
+    std::cout << '\n';
+    return true;
+}
+
+bool Interface::gastarDinheiro(Personagem& personagem) {
+    int valor;
+    if (!lerInteiro("Moedas gastas ou perdidas (maior que zero): ", 1,
+                    1000000, valor)) {
+        return false;
+    }
+
+    bool sucesso = personagem.gastarDinheiro(valor);
+    std::cout << '\n';
+    if (!sucesso) {
+        std::cout << "Saldo insuficiente: o personagem possui "
+                  << personagem.getDinheiro() << " moedas e tentou gastar "
+                  << valor << ". A acao foi bloqueada.\n\n";
+        return true;
+    }
+
+    std::cout << "O personagem gastou " << valor << " moedas. Agora possui "
+              << personagem.getDinheiro() << " moedas.\n";
+    if (personagem.getDinheiro() == 0) {
+        std::cout << "Aviso: o saldo do personagem zerou.\n";
+    }
+    std::cout << '\n';
     return true;
 }
 
@@ -665,19 +727,54 @@ bool Interface::selecionarAba(const Inventario& inventario, int& abaAtual) {
     return true;
 }
 
-void Interface::mostrarStatus(const Personagem& personagem, int capacidade,
-                              int pesoAtual) const {
-    int capacidadeTotal = Calculadora::capacidadeGeral(capacidade);
+void Interface::mostrarStatus(const Personagem& personagem,
+                              const Inventario& inventario) const {
+    int capacidadeTotal =
+        Calculadora::capacidadeGeral(inventario.getCapacidadeComum());
+    int limiar = personagem.getUltimoLimiar();
+
     std::cout << "\n=== Status ===\n"
               << "Nome: " << personagem.getNome() << '\n'
               << "Peso maximo: " << std::fixed << std::setprecision(2)
               << Calculadora::centesimosParaQuilos(personagem.getPesoMaximo())
               << " kg\n"
               << "Capacidade: " << capacidadeTotal << " slots ("
-              << capacidade << " comuns + 4 equipados)\n"
-              << "Peso atual: " << std::fixed << std::setprecision(2)
-              << Calculadora::centesimosParaQuilos(pesoAtual) << " kg\n"
-              << "Dinheiro: " << personagem.getDinheiro() << " moedas\n\n";
+              << inventario.getCapacidadeComum() << " comuns + 4 equipados)\n"
+              << "Slots comuns: " << inventario.slotsComunsOcupados() << "/"
+              << inventario.getCapacidadeComum() << '\n'
+              << "Slots equipados: " << inventario.slotsEquipadosOcupados()
+              << "/4\n"
+              << "Peso total: " << std::fixed << std::setprecision(2)
+              << Calculadora::centesimosParaQuilos(inventario.pesoTotal())
+              << " kg\n"
+              << "Dinheiro: " << personagem.getDinheiro() << " moedas\n"
+              << "Limiar atual: " << descricaoLimiar(limiar) << '\n';
+    if (limiar >= 100) {
+        std::cout << "Cansaco: nao pode atacar, correr nem pegar itens.\n";
+    }
+    std::cout << '\n';
+}
+
+void Interface::mostrarAlertaPeso(const AlertaPeso& alerta) const {
+    if (!alerta.mudou) {
+        return;
+    }
+
+    if (alerta.aumento) {
+        if (alerta.cansaco) {
+            std::cout << "\nAviso de peso: o personagem atingiu 100% da carga"
+                      << " maxima e ficou mais lento.\n"
+                      << "Cansaco: nao pode atacar, correr nem pegar itens.\n";
+        } else {
+            std::cout << "\nAviso de peso: o personagem esta carregando "
+                      << alerta.limiar
+                      << "% ou mais do peso maximo e ficou mais lento.\n";
+        }
+    } else {
+        std::cout << "\nAviso de peso: o peso reduziu para menos de "
+                  << alerta.limiar << "% do peso maximo. "
+                  << "O personagem ficou mais rapido.\n";
+    }
 }
 
 void Interface::mostrarMenu(bool inventarioAberto, int abaAtual) const {
@@ -690,7 +787,9 @@ void Interface::mostrarMenu(bool inventarioAberto, int abaAtual) const {
               << '\n'
               << "5 - Selecionar aba\n"
               << "6 - Pesquisar\n"
-              << "7 - Analisar\n";
+              << "7 - Analisar\n"
+              << "8 - Ganhar dinheiro\n"
+              << "9 - Gastar ou perder dinheiro\n";
     if (inventarioAberto) {
         std::cout << "Aba atual: " << nomeAbaAtual(abaAtual) << '\n';
     }
@@ -713,27 +812,27 @@ void Interface::executar() {
     int abaAtual = 0;
 
     std::cout << "\nPersonagem criado com sucesso!\n";
-    if (!lerItensIniciais(inventario, pesoMaximo)) {
+    if (!lerItensIniciais(inventario, personagem)) {
         std::cout << "\nEntrada encerrada. Programa finalizado.\n";
         return;
     }
-    mostrarStatus(personagem, capacidade, inventario.pesoTotal());
+    mostrarStatus(personagem, inventario);
 
     while (true) {
         mostrarMenu(inventarioAberto, abaAtual);
         int opcao;
-        if (!lerInteiro("Opcao: ", 1, 7, opcao)) {
+        if (!lerInteiro("Opcao: ", 1, 9, opcao)) {
             std::cout << "\nEntrada encerrada. Programa finalizado.\n";
             return;
         }
 
         if (opcao == 1) {
-            mostrarStatus(personagem, capacidade, inventario.pesoTotal());
+            mostrarStatus(personagem, inventario);
         } else if (opcao == 2) {
             std::cout << "\nO personagem foi dormir. Programa encerrado.\n";
             return;
         } else if (opcao == 3) {
-            if (!pegarItem(inventario, pesoMaximo, inventarioAberto)) {
+            if (!pegarItem(personagem, inventario, inventarioAberto)) {
                 std::cout << "\nEntrada encerrada. Programa finalizado.\n";
                 return;
             }
@@ -753,10 +852,20 @@ void Interface::executar() {
                 std::cout << "\nEntrada encerrada. Programa finalizado.\n";
                 return;
             }
-        } else {
+        } else if (opcao == 7) {
             if (!inventarioAberto) {
                 std::cout << "\nAbra o inventario primeiro.\n";
             } else if (!analisarItem(inventario, abaAtual)) {
+                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                return;
+            }
+        } else if (opcao == 8) {
+            if (!ganharDinheiro(personagem)) {
+                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                return;
+            }
+        } else {
+            if (!gastarDinheiro(personagem)) {
                 std::cout << "\nEntrada encerrada. Programa finalizado.\n";
                 return;
             }
