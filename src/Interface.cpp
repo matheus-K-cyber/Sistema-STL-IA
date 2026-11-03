@@ -224,15 +224,12 @@ bool Interface::lerSubtipo(Categoria categoria, Subtipo& subtipo) {
     return true;
 }
 
-bool Interface::pegarItem(Inventario& inventario, int pesoMaximo,
-                          bool& inventarioAberto) {
-    std::string nome;
-    int peso;
-    Categoria categoria;
-    Raridade raridade;
-    Efeito efeito = EFEITO_NENHUM;
-    Subtipo subtipo = SUBTIPO_NENHUM;
-    int quantidade;
+bool Interface::lerDadosItem(std::string& nome, int& peso,
+                             Categoria& categoria, Raridade& raridade,
+                             Efeito& efeito, Subtipo& subtipo,
+                             int& quantidade) {
+    efeito = EFEITO_NENHUM;
+    subtipo = SUBTIPO_NENHUM;
 
     if (!lerNomeItem(nome)) {
         return false;
@@ -257,16 +254,63 @@ bool Interface::pegarItem(Inventario& inventario, int pesoMaximo,
     if (!lerInteiro("Quantidade (maior que zero): ", 1, 1000000, quantidade)) {
         return false;
     }
+    return true;
+}
+
+bool Interface::pegarItem(Inventario& inventario, int pesoMaximo,
+                          bool& inventarioAberto) {
+    std::string nome;
+    int peso;
+    Categoria categoria;
+    Raridade raridade;
+    Efeito efeito;
+    Subtipo subtipo;
+    int quantidade;
+
+    if (!lerDadosItem(nome, peso, categoria, raridade, efeito, subtipo,
+                      quantidade)) {
+        return false;
+    }
 
     Item item(nome, peso, categoria, raridade, efeito, subtipo);
     ResultadoAdicao resultado = inventario.adicionar(item, quantidade, pesoMaximo);
 
-    mostrarResultadoAdicao(resultado, quantidade);
+    mostrarResultadoAdicao(resultado, quantidade, categoria);
     if (!inventarioAberto) {
         inventarioAberto = true;
         std::cout << "O inventario foi aberto automaticamente.\n";
     }
     mostrarInventarioGeral(inventario);
+    return true;
+}
+
+bool Interface::lerItensIniciais(Inventario& inventario, int pesoMaximo) {
+    int total;
+    if (!lerInteiro("Quantidade de itens iniciais (0 para nenhum): ", 0, 1000,
+                    total)) {
+        return false;
+    }
+
+    for (int i = 0; i < total; ++i) {
+        std::string nome;
+        int peso;
+        Categoria categoria;
+        Raridade raridade;
+        Efeito efeito;
+        Subtipo subtipo;
+        int quantidade;
+
+        std::cout << "\n--- Item inicial " << (i + 1) << " ---\n";
+        if (!lerDadosItem(nome, peso, categoria, raridade, efeito, subtipo,
+                          quantidade)) {
+            return false;
+        }
+
+        Item item(nome, peso, categoria, raridade, efeito, subtipo);
+        ResultadoAdicao resultado =
+            inventario.adicionar(item, quantidade, pesoMaximo);
+        mostrarResultadoAdicao(resultado, quantidade, categoria);
+    }
     return true;
 }
 
@@ -289,7 +333,11 @@ void Interface::mostrarAnalise(const ItemStack& pilha) const {
 
 void Interface::mostrarInventarioGeral(const Inventario& inventario) const {
     const std::list<ItemStack>& geral = inventario.listarGeral();
-    std::cout << "\n=== Inventario geral (mais recente primeiro) ===\n";
+    std::cout << "\n=== Inventario geral (mais recente primeiro) ===\n"
+              << "Slots comuns: " << inventario.slotsComunsOcupados() << "/"
+              << inventario.getCapacidadeComum()
+              << " | Sobressalentes: " << inventario.getSobressalentes()
+              << '\n';
     if (geral.empty()) {
         std::cout << "Inventario vazio.\n\n";
         return;
@@ -311,9 +359,36 @@ void Interface::mostrarInventarioGeral(const Inventario& inventario) const {
               << " kg\n\n";
 }
 
+void Interface::mostrarAba(const Inventario& inventario,
+                           Categoria categoria) const {
+    const std::vector<ItemStack*>& aba = inventario.listarAba(categoria);
+    std::cout << "\n=== Aba " << nomeCategoria(categoria) << " ("
+              << aba.size() << "/" << inventario.getCapacidadeAba(categoria)
+              << " slots) ===\n";
+    if (aba.empty()) {
+        std::cout << "Aba vazia.\n\n";
+        return;
+    }
+
+    int pesoAba = 0;
+    for (std::vector<ItemStack*>::size_type i = 0; i < aba.size(); ++i) {
+        const ItemStack& pilha = *aba[i];
+        pesoAba += pilha.pesoTotal();
+        std::cout << (i + 1) << " - " << pilha.identidade().getNome()
+                  << " | " << pilha.quantidade()
+                  << (pilha.quantidade() == 1 ? " unidade" : " unidades")
+                  << " | Peso: " << std::fixed << std::setprecision(2)
+                  << Calculadora::centesimosParaQuilos(pilha.pesoTotal())
+                  << " kg\n";
+    }
+    std::cout << "Peso da aba: " << std::fixed << std::setprecision(2)
+              << Calculadora::centesimosParaQuilos(pesoAba) << " kg\n\n";
+}
+
 void Interface::mostrarResultadoAdicao(const ResultadoAdicao& resultado,
-                                       int quantidade) const {
-    std::cout << "\n=== Resultado do pegar ===\n"
+                                       int quantidade,
+                                       Categoria categoria) const {
+    std::cout << "\n=== Resultado da adicao ===\n"
               << "Quantidade pedida: " << quantidade << '\n';
     if (resultado.adicionados == 0) {
         std::cout << "Nenhuma unidade foi adicionada.\n";
@@ -329,9 +404,16 @@ void Interface::mostrarResultadoAdicao(const ResultadoAdicao& resultado,
     } else if (resultado.motivo == ADICAO_INVENTARIO_CHEIO) {
         std::cout << "Motivo: o inventario esta cheio (sem slot livre para este item).\n"
                   << "Os 4 slots extras sao exclusivos para itens equipados.\n";
+    } else if (resultado.motivo == ADICAO_LIMITE_ABA) {
+        std::cout << "Motivo: a aba de " << nomeCategoria(categoria)
+                  << " esta cheia e nao ha slots sobressalentes.\n";
     } else if (resultado.motivo == ADICAO_LIMITE_PESO_E_INVENTARIO) {
         std::cout << "Motivo: o peso maximo seria ultrapassado e o inventario"
                   << " esta cheio.\n";
+    } else if (resultado.motivo == ADICAO_LIMITE_PESO_E_ABA) {
+        std::cout << "Motivo: o peso maximo seria ultrapassado e a aba de "
+                  << nomeCategoria(categoria)
+                  << " esta cheia sem slots sobressalentes.\n";
     }
     std::cout << "Peso atual: " << std::fixed << std::setprecision(2)
               << Calculadora::centesimosParaQuilos(resultado.pesoAtual)
@@ -348,6 +430,28 @@ void Interface::alternarInventario(const Inventario& inventario,
     inventarioAberto = true;
     std::cout << "\nInventario aberto.\n";
     mostrarInventarioGeral(inventario);
+}
+
+bool Interface::selecionarAba(const Inventario& inventario) {
+    std::cout << "Abas:\n"
+              << "1 - Geral\n"
+              << "2 - Minerios\n"
+              << "3 - Comidas\n"
+              << "4 - Pocoes\n"
+              << "5 - Armas\n"
+              << "6 - Unicos\n"
+              << "7 - Recursos Naturais\n";
+    int opcao;
+    if (!lerInteiro("Aba: ", 1, 7, opcao)) {
+        return false;
+    }
+
+    if (opcao == 1) {
+        mostrarInventarioGeral(inventario);
+    } else {
+        mostrarAba(inventario, static_cast<Categoria>(opcao - 2));
+    }
+    return true;
 }
 
 void Interface::mostrarStatus(const Personagem& personagem, int capacidade,
@@ -372,7 +476,8 @@ void Interface::mostrarMenu(bool inventarioAberto) const {
               << "3 - Pegar item\n"
               << "4 - "
               << (inventarioAberto ? "Fechar inventario" : "Abrir inventario")
-              << '\n';
+              << '\n'
+              << "5 - Selecionar aba\n";
 }
 
 void Interface::executar() {
@@ -391,12 +496,16 @@ void Interface::executar() {
     bool inventarioAberto = false;
 
     std::cout << "\nPersonagem criado com sucesso!\n";
+    if (!lerItensIniciais(inventario, pesoMaximo)) {
+        std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+        return;
+    }
     mostrarStatus(personagem, capacidade, inventario.pesoTotal());
 
     while (true) {
         mostrarMenu(inventarioAberto);
         int opcao;
-        if (!lerInteiro("Opcao: ", 1, 4, opcao)) {
+        if (!lerInteiro("Opcao: ", 1, 5, opcao)) {
             std::cout << "\nEntrada encerrada. Programa finalizado.\n";
             return;
         }
@@ -411,8 +520,15 @@ void Interface::executar() {
                 std::cout << "\nEntrada encerrada. Programa finalizado.\n";
                 return;
             }
-        } else {
+        } else if (opcao == 4) {
             alternarInventario(inventario, inventarioAberto);
+        } else {
+            if (!inventarioAberto) {
+                std::cout << "\nAbra o inventario primeiro.\n";
+            } else if (!selecionarAba(inventario)) {
+                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                return;
+            }
         }
     }
 }

@@ -22,14 +22,20 @@ private:
     bool lerRaridade(Raridade& raridade);
     bool lerEfeito(Efeito& efeito);
     bool lerSubtipo(Categoria categoria, Subtipo& subtipo);
+    bool lerDadosItem(std::string& nome, int& peso, Categoria& categoria,
+                      Raridade& raridade, Efeito& efeito, Subtipo& subtipo,
+                      int& quantidade);
     bool pegarItem(Inventario& inventario, int pesoMaximo,
                    bool& inventarioAberto);
+    bool lerItensIniciais(Inventario& inventario, int pesoMaximo);
     void mostrarAnalise(const ItemStack& pilha) const;
     void mostrarInventarioGeral(const Inventario& inventario) const;
+    void mostrarAba(const Inventario& inventario, Categoria categoria) const;
     void mostrarResultadoAdicao(const ResultadoAdicao& resultado,
-                                int quantidade) const;
+                                int quantidade, Categoria categoria) const;
     void alternarInventario(const Inventario& inventario,
                             bool& inventarioAberto) const;
+    bool selecionarAba(const Inventario& inventario);
     void mostrarStatus(const Personagem& personagem, int capacidade,
                        int pesoAtual) const;
     void mostrarMenu(bool inventarioAberto) const;
