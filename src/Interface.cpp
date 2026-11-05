@@ -338,6 +338,39 @@ bool Interface::lerItensIniciais(Inventario& inventario,
             inventario.adicionar(item, quantidade, personagem.getPesoMaximo());
         mostrarResultadoAdicao(resultado, quantidade, categoria);
         mostrarAlertaPeso(personagem.atualizarPeso(inventario.pesoTotal()));
+
+        if (item.isEquipavel() && resultado.adicionados > 0) {
+            bool equipar = false;
+            if (!perguntarEquiparInicial(equipar)) {
+                return false;
+            }
+            if (equipar) {
+                std::vector<ItemStack*> pilhas =
+                    inventario.stacksDaIdentidade(item);
+                ItemStack* alvo = 0;
+                for (std::vector<ItemStack*>::size_type j = 0;
+                     j < pilhas.size(); ++j) {
+                    if (!pilhas[j]->isEquipado()
+                        && pilhas[j]->quantidade() == 1) {
+                        alvo = pilhas[j];
+                        break;
+                    }
+                }
+                if (alvo != 0) {
+                    ResultadoAcao acao =
+                        Acoes::equipar(inventario, personagem, alvo);
+                    std::cout << '\n';
+                    if (acao.sucesso) {
+                        SlotEquipamento slot;
+                        alvo->identidade().slotEquipamento(slot);
+                        std::cout << "Item inicial equipado no slot "
+                                  << nomeSlotEquipamento(slot) << ".\n\n";
+                    } else {
+                        std::cout << "Nao foi possivel equipar o item inicial.\n\n";
+                    }
+                }
+            }
+        }
     }
     return true;
 }
@@ -774,6 +807,16 @@ bool Interface::confirmar(const std::string& pergunta, bool& confirmado) {
     return true;
 }
 
+bool Interface::perguntarEquiparInicial(bool& equipar) {
+    int opcao;
+    if (!lerInteiro("Equipar este item agora? (1 - Sim, 2 - Nao): ", 1, 2,
+                    opcao)) {
+        return false;
+    }
+    equipar = (opcao == 1);
+    return true;
+}
+
 bool Interface::consumirItem(Inventario& inventario, Personagem& personagem,
                              int abaAtual) {
     const ItemStack* pilha = 0;
@@ -891,6 +934,110 @@ bool Interface::descartarItem(Inventario& inventario, Personagem& personagem,
     return true;
 }
 
+bool Interface::equiparItem(Inventario& inventario, Personagem& personagem,
+                            int abaAtual) {
+    const ItemStack* pilha = 0;
+    if (!escolherPilha(inventario, abaAtual, "equipar", pilha)) {
+        return false;
+    }
+    if (pilha == 0) {
+        return true;
+    }
+
+    SlotEquipamento slot = SLOT_ARMA;
+    bool equipavel = pilha->identidade().slotEquipamento(slot);
+    const ItemStack* antigo = equipavel ? personagem.getEquipado(slot) : 0;
+    std::string nomeAntigo =
+        antigo != 0 ? antigo->identidade().getNome() : "";
+    std::string nome = pilha->identidade().getNome();
+    ResultadoAcao resultado = Acoes::equipar(inventario, personagem, pilha);
+
+    std::cout << '\n';
+    if (!resultado.sucesso) {
+        if (resultado.motivo == FALHA_NAO_ENCONTRADO) {
+            std::cout << "O item nao esta mais no inventario.\n\n";
+        } else if (resultado.motivo == FALHA_EQUIPADO) {
+            std::cout << "Nao e possivel equipar um item que ja esta equipado. "
+                      << "Desequipe-o primeiro.\n\n";
+        } else if (resultado.motivo == FALHA_NAO_EQUIPAVEL) {
+            std::cout << "Somente armas e pecas de armadura podem ser "
+                      << "equipadas.\n\n";
+        } else if (resultado.motivo == FALHA_QUANTIDADE_INSUFICIENTE) {
+            std::cout << "O item precisa ter uma unidade para ser equipado.\n\n";
+        } else {
+            std::cout << "Nao foi possivel equipar o item.\n\n";
+        }
+        return true;
+    }
+
+    std::cout << "O item " << nome << " foi equipado no slot "
+              << nomeSlotEquipamento(slot) << ".\n";
+    if (antigo != 0) {
+        std::cout << "O item " << nomeAntigo << " voltou para a aba "
+                  << nomeCategoria(antigo->identidade().getCategoria())
+                  << " e ocupou o lugar que o novo deixou.\n"
+                  << "Os dois continuam na aba geral, na mesma ordem.\n\n";
+    } else {
+        std::cout << "O item saiu da aba categorizada e continua na aba "
+                  << "geral, na mesma ordem.\n\n";
+    }
+    return true;
+}
+
+bool Interface::desequiparItem(Inventario& inventario,
+                               Personagem& personagem) {
+    if (personagem.quantidadeEquipados() == 0) {
+        std::cout << "\nNao ha itens equipados para desequipar.\n\n";
+        return true;
+    }
+
+    std::vector<SlotEquipamento> ocupados;
+    std::cout << "\nItens equipados:\n";
+    for (int i = 0; i < 4; ++i) {
+        SlotEquipamento slot = static_cast<SlotEquipamento>(i);
+        const ItemStack* pilha = personagem.getEquipado(slot);
+        if (pilha == 0) {
+            continue;
+        }
+        ocupados.push_back(slot);
+        std::cout << ocupados.size() << " - " << nomeSlotEquipamento(slot)
+                  << ": " << pilha->identidade().getNome() << '\n';
+    }
+
+    int escolha;
+    if (!lerInteiro("Slot para desequipar: ", 1,
+                    static_cast<int>(ocupados.size()), escolha)) {
+        return false;
+    }
+    SlotEquipamento slot = ocupados[escolha - 1];
+    ItemStack* pilha = personagem.getEquipado(slot);
+    std::string nome = pilha->identidade().getNome();
+    Categoria categoria = pilha->identidade().getCategoria();
+    ResultadoAcao resultado = Acoes::desequipar(inventario, personagem, slot);
+
+    std::cout << '\n';
+    if (!resultado.sucesso) {
+        if (resultado.motivo == FALHA_NAO_ENCONTRADO) {
+            std::cout << "Nao ha item equipado nesse slot.\n\n";
+        } else if (resultado.motivo == FALHA_SEM_ESPACO_GERAL) {
+            std::cout << "Nao ha vaga na aba geral comum. O desequipamento "
+                      << "foi bloqueado.\n\n";
+        } else if (resultado.motivo == FALHA_SEM_ESPACO_ABA) {
+            std::cout << "Nao ha vaga na aba de " << nomeCategoria(categoria)
+                      << " nem slot sobressalente. O desequipamento foi "
+                      << "bloqueado.\n\n";
+        } else {
+            std::cout << "Nao foi possivel desequipar o item.\n\n";
+        }
+        return true;
+    }
+
+    std::cout << "O item " << nome << " foi desequipado do slot "
+              << nomeSlotEquipamento(slot) << " e voltou para a aba "
+              << nomeCategoria(categoria) << ".\n\n";
+    return true;
+}
+
 bool Interface::selecionarAba(const Inventario& inventario, int& abaAtual) {
     std::cout << "Abas:\n"
               << "1 - Geral\n"
@@ -980,7 +1127,9 @@ void Interface::mostrarMenu(bool inventarioAberto, int abaAtual) const {
               << "8 - Ganhar dinheiro\n"
               << "9 - Gastar ou perder dinheiro\n"
               << "10 - Consumir\n"
-              << "11 - Descartar\n";
+              << "11 - Descartar\n"
+              << "12 - Equipar\n"
+              << "13 - Desequipar\n";
     if (inventarioAberto) {
         std::cout << "Aba atual: " << nomeAbaAtual(abaAtual) << '\n';
     }
@@ -1012,7 +1161,7 @@ void Interface::executar() {
     while (true) {
         mostrarMenu(inventarioAberto, abaAtual);
         int opcao;
-        if (!lerInteiro("Opcao: ", 1, 11, opcao)) {
+        if (!lerInteiro("Opcao: ", 1, 13, opcao)) {
             std::cout << "\nEntrada encerrada. Programa finalizado.\n";
             return;
         }
@@ -1067,10 +1216,24 @@ void Interface::executar() {
                 std::cout << "\nEntrada encerrada. Programa finalizado.\n";
                 return;
             }
-        } else {
+        } else if (opcao == 11) {
             if (!inventarioAberto) {
                 std::cout << "\nAbra o inventario primeiro.\n";
             } else if (!descartarItem(inventario, personagem, abaAtual)) {
+                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                return;
+            }
+        } else if (opcao == 12) {
+            if (!inventarioAberto) {
+                std::cout << "\nAbra o inventario primeiro.\n";
+            } else if (!equiparItem(inventario, personagem, abaAtual)) {
+                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                return;
+            }
+        } else {
+            if (!inventarioAberto) {
+                std::cout << "\nAbra o inventario primeiro.\n";
+            } else if (!desequiparItem(inventario, personagem)) {
                 std::cout << "\nEntrada encerrada. Programa finalizado.\n";
                 return;
             }

@@ -30,12 +30,14 @@ Espada
 1
 1
 1
+2
 Capacete
 2,00
 5
 1
 2
 1
+2
 Madeira
 1,00
 6

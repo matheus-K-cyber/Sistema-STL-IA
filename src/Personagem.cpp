@@ -9,7 +9,7 @@ AlertaPeso::AlertaPeso()
 Personagem::Personagem(const std::string& nomePersonagem,
                        int pesoMaximoPersonagem, int dinheiroInicial)
     : nome(nomePersonagem), pesoMaximo(pesoMaximoPersonagem),
-      dinheiro(dinheiroInicial), ultimoLimiar(0) {
+      dinheiro(dinheiroInicial), ultimoLimiar(0), equipados() {
 }
 
 const std::string& Personagem::getNome() const {
@@ -70,4 +70,35 @@ AlertaPeso Personagem::atualizarPeso(int pesoAtual) {
 
     ultimoLimiar = novoLimiar;
     return alerta;
+}
+
+ItemStack* Personagem::getEquipado(SlotEquipamento slot) const {
+    std::map<SlotEquipamento, ItemStack*>::const_iterator it =
+        equipados.find(slot);
+    if (it == equipados.end()) {
+        return 0;
+    }
+    return it->second;
+}
+
+void Personagem::trocarEquipado(SlotEquipamento slot, ItemStack* pilha) {
+    if (pilha == 0) {
+        equipados.erase(slot);
+        return;
+    }
+    equipados[slot] = pilha;
+}
+
+ItemStack* Personagem::removerEquipado(SlotEquipamento slot) {
+    std::map<SlotEquipamento, ItemStack*>::iterator it = equipados.find(slot);
+    if (it == equipados.end()) {
+        return 0;
+    }
+    ItemStack* pilha = it->second;
+    equipados.erase(it);
+    return pilha;
+}
+
+int Personagem::quantidadeEquipados() const {
+    return static_cast<int>(equipados.size());
 }

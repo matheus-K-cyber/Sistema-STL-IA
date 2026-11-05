@@ -8,8 +8,11 @@ enum MotivoFalha {
     FALHA_NENHUMA,
     FALHA_NAO_ENCONTRADO,
     FALHA_NAO_CONSUMIVEL,
+    FALHA_NAO_EQUIPAVEL,
     FALHA_EQUIPADO,
-    FALHA_QUANTIDADE_INSUFICIENTE
+    FALHA_QUANTIDADE_INSUFICIENTE,
+    FALHA_SEM_ESPACO_GERAL,
+    FALHA_SEM_ESPACO_ABA
 };
 
 struct ResultadoAcao {
@@ -34,6 +37,12 @@ public:
     static ResultadoAcao descartarTudo(Inventario& inventario,
                                        Personagem& personagem,
                                        const ItemStack* pilha);
+    static ResultadoAcao equipar(Inventario& inventario,
+                                 Personagem& personagem,
+                                 const ItemStack* pilha);
+    static ResultadoAcao desequipar(Inventario& inventario,
+                                    Personagem& personagem,
+                                    SlotEquipamento slot);
 
 private:
     Acoes();

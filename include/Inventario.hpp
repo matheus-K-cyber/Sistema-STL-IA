@@ -44,6 +44,8 @@ public:
     const std::list<ItemStack>& listarGeral() const;
     const std::vector<ItemStack*>& listarAba(Categoria categoria) const;
     void ordenarAba(Categoria categoria);
+    bool removerDaAba(ItemStack* pilha);
+    bool adicionarNaAba(ItemStack* pilha);
     std::vector<const ItemStack*> pesquisar(const std::string& prefixo,
                                             Categoria categoria,
                                             bool naGeral) const;

@@ -49,6 +49,10 @@ private:
                       int abaAtual);
     bool descartarItem(Inventario& inventario, Personagem& personagem,
                        int abaAtual);
+    bool equiparItem(Inventario& inventario, Personagem& personagem,
+                     int abaAtual);
+    bool desequiparItem(Inventario& inventario, Personagem& personagem);
+    bool perguntarEquiparInicial(bool& equipar);
     void mostrarResultadosPesquisa(
         const std::vector<const ItemStack*>& resultados, int abaAtual,
         const std::string& texto) const;

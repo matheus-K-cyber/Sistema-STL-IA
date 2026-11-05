@@ -246,6 +246,51 @@ void Inventario::ordenarAba(Categoria categoria) {
     }
 }
 
+bool Inventario::removerDaAba(ItemStack* pilha) {
+    if (pilha == 0) {
+        return false;
+    }
+
+    Categoria categoria = pilha->identidade().getCategoria();
+    std::map<Categoria, std::vector<ItemStack*> >::iterator aba =
+        abas.find(categoria);
+    if (aba == abas.end()) {
+        return false;
+    }
+
+    std::vector<ItemStack*>::iterator posicao =
+        std::find(aba->second.begin(), aba->second.end(), pilha);
+    if (posicao == aba->second.end()) {
+        return false;
+    }
+    aba->second.erase(posicao);
+    return true;
+}
+
+bool Inventario::adicionarNaAba(ItemStack* pilha) {
+    if (pilha == 0 || pilha->quantidade() <= 0) {
+        return false;
+    }
+
+    Categoria categoria = pilha->identidade().getCategoria();
+    std::map<Categoria, std::vector<ItemStack*> >::iterator aba =
+        abas.find(categoria);
+    if (aba == abas.end()) {
+        return false;
+    }
+    if (std::find(aba->second.begin(), aba->second.end(), pilha)
+        != aba->second.end()) {
+        return false;
+    }
+    if (!reservarSlotAba(categoria)) {
+        return false;
+    }
+
+    aba->second.push_back(pilha);
+    ordenarAba(categoria);
+    return true;
+}
+
 std::vector<const ItemStack*> Inventario::pesquisar(
     const std::string& prefixo, Categoria categoria, bool naGeral) const {
     std::vector<const ItemStack*> encontrados;
