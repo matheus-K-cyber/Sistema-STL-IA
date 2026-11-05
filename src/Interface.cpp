@@ -142,6 +142,13 @@ bool Interface::lerNomeItem(std::string& nome) {
             std::cout << "O nome nao pode ficar vazio.\n";
             continue;
         }
+        int caracteres = Calculadora::contarCaracteresSemEspaco(nome);
+        if (caracteres > 99) {
+            std::cout << "O nome do item pode ter no maximo 99 caracteres"
+                      << " sem contar espacos. Foram informados "
+                      << caracteres << ".\n";
+            continue;
+        }
         return true;
     }
 }
