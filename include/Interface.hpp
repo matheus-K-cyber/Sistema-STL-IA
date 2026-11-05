@@ -61,6 +61,7 @@ private:
     void mostrarStatus(const Personagem& personagem,
                        const Inventario& inventario) const;
     void mostrarAlertaPeso(const AlertaPeso& alerta) const;
+    void limparDados(Personagem& personagem, Inventario& inventario) const;
     void mostrarMenu(bool inventarioAberto, int abaAtual) const;
 };
 

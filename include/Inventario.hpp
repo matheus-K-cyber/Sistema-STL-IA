@@ -31,6 +31,7 @@ public:
     explicit Inventario(int capacidadeComum);
 
     void configurar(int capacidadeComum);
+    void limpar();
 
     ResultadoAdicao adicionar(const Item& item, int quantidade, int pesoMaximo);
     int pesoTotal() const;

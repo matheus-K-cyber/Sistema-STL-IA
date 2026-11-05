@@ -12,6 +12,14 @@ Personagem::Personagem(const std::string& nomePersonagem,
       dinheiro(dinheiroInicial), ultimoLimiar(0), equipados() {
 }
 
+void Personagem::limpar() {
+    equipados.clear();
+    nome.clear();
+    pesoMaximo = 0;
+    dinheiro = 0;
+    ultimoLimiar = 0;
+}
+
 const std::string& Personagem::getNome() const {
     return nome;
 }

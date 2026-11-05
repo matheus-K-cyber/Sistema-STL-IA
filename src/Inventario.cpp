@@ -36,6 +36,14 @@ void Inventario::configurar(int capacidadeComum) {
     }
 }
 
+void Inventario::limpar() {
+    abas.clear();
+    capacidadeAba.clear();
+    geral.clear();
+    capacidadeComum = 0;
+    sobressalentes = 0;
+}
+
 ResultadoAdicao Inventario::adicionar(const Item& item, int quantidade,
                                       int pesoMaximo) {
     ResultadoAdicao resultado;

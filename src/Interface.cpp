@@ -1113,6 +1113,12 @@ void Interface::mostrarAlertaPeso(const AlertaPeso& alerta) const {
     }
 }
 
+void Interface::limparDados(Personagem& personagem,
+                            Inventario& inventario) const {
+    personagem.limpar();
+    inventario.limpar();
+}
+
 void Interface::mostrarMenu(bool inventarioAberto, int abaAtual) const {
     std::cout << "=== Menu ===\n"
               << "1 - Status\n"
@@ -1129,112 +1135,140 @@ void Interface::mostrarMenu(bool inventarioAberto, int abaAtual) const {
               << "10 - Consumir\n"
               << "11 - Descartar\n"
               << "12 - Equipar\n"
-              << "13 - Desequipar\n";
+              << "13 - Desequipar\n"
+              << "14 - Morrer\n";
     if (inventarioAberto) {
         std::cout << "Aba atual: " << nomeAbaAtual(abaAtual) << '\n';
     }
 }
 
 void Interface::executar() {
-    std::string nome;
-    int pesoMaximo;
-    int capacidade;
-    int dinheiro;
+    bool criarOutro = true;
+    while (criarOutro) {
+        criarOutro = false;
 
-    if (!lerDadosCriacao(nome, pesoMaximo, capacidade, dinheiro)) {
-        std::cout << "\nEntrada encerrada. Programa finalizado.\n";
-        return;
-    }
+        std::string nome;
+        int pesoMaximo;
+        int capacidade;
+        int dinheiro;
 
-    Personagem personagem(nome, pesoMaximo, dinheiro);
-    Inventario inventario(capacidade);
-    bool inventarioAberto = false;
-    int abaAtual = 0;
-
-    std::cout << "\nPersonagem criado com sucesso!\n";
-    if (!lerItensIniciais(inventario, personagem)) {
-        std::cout << "\nEntrada encerrada. Programa finalizado.\n";
-        return;
-    }
-    mostrarStatus(personagem, inventario);
-
-    while (true) {
-        mostrarMenu(inventarioAberto, abaAtual);
-        int opcao;
-        if (!lerInteiro("Opcao: ", 1, 13, opcao)) {
+        if (!lerDadosCriacao(nome, pesoMaximo, capacidade, dinheiro)) {
             std::cout << "\nEntrada encerrada. Programa finalizado.\n";
             return;
         }
 
-        if (opcao == 1) {
-            mostrarStatus(personagem, inventario);
-        } else if (opcao == 2) {
-            std::cout << "\nO personagem foi dormir. Programa encerrado.\n";
+        Personagem personagem(nome, pesoMaximo, dinheiro);
+        Inventario inventario(capacidade);
+        bool inventarioAberto = false;
+        int abaAtual = 0;
+
+        std::cout << "\nPersonagem criado com sucesso!\n";
+        if (!lerItensIniciais(inventario, personagem)) {
+            std::cout << "\nEntrada encerrada. Programa finalizado.\n";
             return;
-        } else if (opcao == 3) {
-            if (!pegarItem(personagem, inventario, inventarioAberto)) {
+        }
+        mostrarStatus(personagem, inventario);
+
+        while (true) {
+            mostrarMenu(inventarioAberto, abaAtual);
+            int opcao;
+            if (!lerInteiro("Opcao: ", 1, 14, opcao)) {
                 std::cout << "\nEntrada encerrada. Programa finalizado.\n";
                 return;
             }
-        } else if (opcao == 4) {
-            alternarInventario(inventario, inventarioAberto);
-        } else if (opcao == 5) {
-            if (!inventarioAberto) {
-                std::cout << "\nAbra o inventario primeiro.\n";
-            } else if (!selecionarAba(inventario, abaAtual)) {
-                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+
+            if (opcao == 1) {
+                mostrarStatus(personagem, inventario);
+            } else if (opcao == 2) {
+                limparDados(personagem, inventario);
+                std::cout << "\nO personagem foi dormir. Programa encerrado.\n";
                 return;
-            }
-        } else if (opcao == 6) {
-            if (!inventarioAberto) {
-                std::cout << "\nAbra o inventario primeiro.\n";
-            } else if (!pesquisarItem(inventario, abaAtual)) {
-                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
-                return;
-            }
-        } else if (opcao == 7) {
-            if (!inventarioAberto) {
-                std::cout << "\nAbra o inventario primeiro.\n";
-            } else if (!analisarItem(inventario, abaAtual)) {
-                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
-                return;
-            }
-        } else if (opcao == 8) {
-            if (!ganharDinheiro(personagem)) {
-                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
-                return;
-            }
-        } else if (opcao == 9) {
-            if (!gastarDinheiro(personagem)) {
-                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
-                return;
-            }
-        } else if (opcao == 10) {
-            if (!inventarioAberto) {
-                std::cout << "\nAbra o inventario primeiro.\n";
-            } else if (!consumirItem(inventario, personagem, abaAtual)) {
-                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
-                return;
-            }
-        } else if (opcao == 11) {
-            if (!inventarioAberto) {
-                std::cout << "\nAbra o inventario primeiro.\n";
-            } else if (!descartarItem(inventario, personagem, abaAtual)) {
-                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
-                return;
-            }
-        } else if (opcao == 12) {
-            if (!inventarioAberto) {
-                std::cout << "\nAbra o inventario primeiro.\n";
-            } else if (!equiparItem(inventario, personagem, abaAtual)) {
-                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
-                return;
-            }
-        } else {
-            if (!inventarioAberto) {
-                std::cout << "\nAbra o inventario primeiro.\n";
-            } else if (!desequiparItem(inventario, personagem)) {
-                std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+            } else if (opcao == 3) {
+                if (!pegarItem(personagem, inventario, inventarioAberto)) {
+                    std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                    return;
+                }
+            } else if (opcao == 4) {
+                alternarInventario(inventario, inventarioAberto);
+            } else if (opcao == 5) {
+                if (!inventarioAberto) {
+                    std::cout << "\nAbra o inventario primeiro.\n";
+                } else if (!selecionarAba(inventario, abaAtual)) {
+                    std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                    return;
+                }
+            } else if (opcao == 6) {
+                if (!inventarioAberto) {
+                    std::cout << "\nAbra o inventario primeiro.\n";
+                } else if (!pesquisarItem(inventario, abaAtual)) {
+                    std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                    return;
+                }
+            } else if (opcao == 7) {
+                if (!inventarioAberto) {
+                    std::cout << "\nAbra o inventario primeiro.\n";
+                } else if (!analisarItem(inventario, abaAtual)) {
+                    std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                    return;
+                }
+            } else if (opcao == 8) {
+                if (!ganharDinheiro(personagem)) {
+                    std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                    return;
+                }
+            } else if (opcao == 9) {
+                if (!gastarDinheiro(personagem)) {
+                    std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                    return;
+                }
+            } else if (opcao == 10) {
+                if (!inventarioAberto) {
+                    std::cout << "\nAbra o inventario primeiro.\n";
+                } else if (!consumirItem(inventario, personagem, abaAtual)) {
+                    std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                    return;
+                }
+            } else if (opcao == 11) {
+                if (!inventarioAberto) {
+                    std::cout << "\nAbra o inventario primeiro.\n";
+                } else if (!descartarItem(inventario, personagem, abaAtual)) {
+                    std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                    return;
+                }
+            } else if (opcao == 12) {
+                if (!inventarioAberto) {
+                    std::cout << "\nAbra o inventario primeiro.\n";
+                } else if (!equiparItem(inventario, personagem, abaAtual)) {
+                    std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                    return;
+                }
+            } else if (opcao == 13) {
+                if (!inventarioAberto) {
+                    std::cout << "\nAbra o inventario primeiro.\n";
+                } else if (!desequiparItem(inventario, personagem)) {
+                    std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                    return;
+                }
+            } else {
+                std::cout << "\nPersonagem teve sua vida zerada, agora ele esta"
+                          << " morto e seus dados serao descartados e o"
+                          << " inventario esvaziado...\n";
+                limparDados(personagem, inventario);
+                std::cout << "\nDados do personagem apagados.\n"
+                          << "Deseja criar outro personagem ou encerrar?\n"
+                          << "1 - Criar outro personagem\n"
+                          << "2 - Encerrar\n";
+                int escolha;
+                if (!lerInteiro("Opcao: ", 1, 2, escolha)) {
+                    std::cout << "\nEntrada encerrada. Programa finalizado.\n";
+                    return;
+                }
+                if (escolha == 1) {
+                    criarOutro = true;
+                    break;
+                }
+                std::cout << "\nEncerrando o gerenciamento da mochila."
+                          << " Programa finalizado.\n";
                 return;
             }
         }

@@ -20,6 +20,8 @@ public:
     Personagem(const std::string& nomePersonagem, int pesoMaximoPersonagem,
                int dinheiroInicial);
 
+    void limpar();
+
     const std::string& getNome() const;
     int getPesoMaximo() const;
     int getDinheiro() const;
